@@ -1,0 +1,16 @@
+# Compiled Python files
+*.pyc
+
+# Python egg metadata
+*.egg-info/
+
+# Virtual environment
+venv/
+.env
+.idea/
+
+# Logs and other generated files
+*.log
+*.csv
+*.json
+*.txt
