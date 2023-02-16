@@ -43,23 +43,6 @@
         fill: currentColor;
       }
 
-      .nav-scroller {
-        position: relative;
-        z-index: 2;
-        height: 2.75rem;
-        overflow-y: hidden;
-      }
-
-      .nav-scroller .nav {
-        display: flex;
-        flex-wrap: nowrap;
-        padding-bottom: 1rem;
-        margin-top: -1px;
-        overflow-x: auto;
-        text-align: center;
-        white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
-      }
 
 
     </style>
@@ -71,13 +54,15 @@
     {% endblock %}
 </head>
 <body>
-<!-- Your page content -->
+<!-- Page content -->
 {% block content %}{% endblock %}
 
 {% block scripts %}
+
 <!-- Optional JavaScript -->
 {{ bootstrap.load_js() }}
-<script src="{{ url_for('static', filename='sidebars.js') }}"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 {% endblock %}
 </body>
 </html>
+<!-- TODO add sidebar to template-->

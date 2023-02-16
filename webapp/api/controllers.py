@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from .plant import plant_bp
 from .imaging import imaging_bp
 
@@ -10,7 +10,6 @@ api_bp.register_blueprint(imaging_bp)
 
 @api_bp.route('/config')
 def config():
-    import yaml
     # camera integration
     # total depth to use
     # total number of images
@@ -18,3 +17,8 @@ def config():
     # use yaml to read and update and dump after update (apply button)
     pass
 
+
+@api_bp.route('/')
+def home():
+    response = {"message": "main api endpoint"}
+    return jsonify(response)

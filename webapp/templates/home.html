@@ -4,7 +4,7 @@
 
 <main class="d-flex flex-nowrap">
 
-    <!--    sidebar -->
+    <!--    sidebar     -->
     <div class="d-flex flex-column flex-shrink-0 p-3 bg-light" style="width: 280px;">
         <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
             <i class="fa-solid fa-dna fa-2x"></i>
@@ -55,29 +55,29 @@
     </div>
     <div class="b-example-vr"></div>
 
-    <!--    main content -->
+    <!--    main content    -->
     <div class="container m-2 mt-4">
-        <div class="text-left">
+        <div class="title-box">
             <h1>Plant Imaging Dashboard</h1>
             <p>Welcome, User!</p>
         </div>
 
         <div class="row align-items-start text-center mb-4">
             <div class="col">
-                <div class="card">
+                <div class="card card-custom border-0">
                     <div class="card-body">
                         <h5 class="card-title">Raspberry Pi Status</h5>
                         <p class="card-text">Both plant growth and imaging devices are online and ready.</p>
-                        <a href="#" class="btn btn-primary">Update device</a>
+                        <a href="#" class="btn btn-outline-dark btn-custom">Update devices</a>
                     </div>
                 </div>
             </div>
             <div class="col">
-                <div class="card">
+                <div class="card card-custom border-0 card-custom2">
                     <div class="card-body">
                         <h5 class="card-title">Camera Integration</h5>
                         <p class="card-text">Canon EOS integration is ready for automated image capture.</p>
-                        <a href="#" class="btn btn-primary">Change integration</a>
+                        <a href="#" class="btn btn-outline-dark btn-custom2">Change integration</a>
                     </div>
                 </div>
             </div>
@@ -126,14 +126,8 @@
 
         </div>
 
-
     </div>
 
-
 </main>
-
-
-<script src="{{ url_for('static', filename='sidebars.js') }}"></script>
-
 
 {% endblock %}
