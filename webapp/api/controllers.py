@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from .plant import plant_bp
 from .imaging import imaging_bp
 

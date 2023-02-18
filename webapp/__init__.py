@@ -1,11 +1,9 @@
 from flask import Flask
 from flask_bootstrap import Bootstrap5
-
-from .api import create_module as api_create_module
-from .dashboard import create_module as dashboard_create_module
-from .main import create_module as main_create_module
+from flask_sqlalchemy import SQLAlchemy
 
 bootstrap = Bootstrap5()
+db = SQLAlchemy()
 
 
 def create_app(object_name):
@@ -21,6 +19,11 @@ def create_app(object_name):
     app.config.from_object(object_name)
 
     bootstrap.init_app(app)  # will be required for dashboard setup TODO add option to remove if only api used
+    db.init_app(app)
+
+    from .api import create_module as api_create_module
+    from .dashboard import create_module as dashboard_create_module
+    from .main import create_module as main_create_module
 
     api_create_module(app)
     dashboard_create_module(app)

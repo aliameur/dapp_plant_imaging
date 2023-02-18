@@ -2,59 +2,6 @@
 
 {% block content %}
 
-<main class="d-flex flex-nowrap">
-
-    <!--    sidebar     -->
-    <div class="d-flex flex-column flex-shrink-0 p-3 bg-light" style="width: 280px;">
-        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
-            <i class="fa-solid fa-dna fa-2x"></i>
-            <span class="fs-4" style="margin-left: 0.4em;">Testing</span>
-        </a>
-        <hr>
-        <ul class="nav nav-pills flex-column mb-auto">
-            <li class="nav-item">
-                <a href="#" class="nav-link active" aria-current="page">
-                    <i class="fa-solid fa-house"></i>
-                    Dashboard
-                </a>
-            </li>
-            <li>
-                <a href="#" class="nav-link link-dark">
-                    <i class="fa-solid fa-plant-wilt"></i>
-                    Plant Conditions
-                </a>
-            </li>
-            <li>
-                <a href="#" class="nav-link link-dark">
-                    <i class="fa-solid fa-camera"></i>
-                    Imaging
-                </a>
-            </li>
-            <li>
-                <a href="#" class="nav-link link-dark">
-                    <i class="fa-solid fa-image"></i>
-                    Images
-                </a>
-            </li>
-            <li>
-                <a href="#" class="nav-link link-dark">
-                    <i class="fa-solid fa-gear"></i>
-                    Settings
-                </a>
-            </li>
-        </ul>
-        <hr>
-        <div class="d-flex align-items-center mx-auto ">
-            <i class="fa-solid fa-user fa-2x"></i>
-
-            <!--            <a href="#" class="d-flex align-items-center link-dark text-decoration-none">-->
-            <!--                <img src="https://github.com/mdo.png" alt="" width="32" height="32" class="rounded-circle me-2">-->
-            <!--                <strong>User</strong>-->
-            <!--            </a>-->
-        </div>
-    </div>
-    <div class="b-example-vr"></div>
-
     <!--    main content    -->
     <div class="container m-2 mt-4">
         <div class="title-box">
@@ -62,62 +9,65 @@
             <p>Welcome, User!</p>
         </div>
 
-        <div class="row align-items-start text-center mb-4">
+        <div class="row d-flex text-center mb-4">
             <div class="col">
-                <div class="card card-custom border-0">
+                <div class="card card-custom border-0 transition">
                     <div class="card-body">
                         <h5 class="card-title">Raspberry Pi Status</h5>
                         <p class="card-text">Both plant growth and imaging devices are online and ready.</p>
-                        <a href="#" class="btn btn-outline-dark btn-custom">Update devices</a>
+                    </div>
+                    <div class="card-footer border-0 bg-transparent">
+                        <a href="#" class="btn btn-outline-dark btn-custom mt-auto mx-auto">Update devices</a>
                     </div>
                 </div>
             </div>
             <div class="col">
-                <div class="card card-custom border-0 card-custom2">
+                <div class="card border-0 card-custom2 transition">
                     <div class="card-body">
                         <h5 class="card-title">Camera Integration</h5>
                         <p class="card-text">Canon EOS integration is ready for automated image capture.</p>
-                        <a href="#" class="btn btn-outline-dark btn-custom2">Change integration</a>
+                    </div>
+                    <div class="card-footer border-0 bg-transparent">
+                        <a href="#" class="btn btn-outline-dark btn-custom mt-auto mx-auto">Change integration</a>
                     </div>
                 </div>
             </div>
             <div class="col">
-                <div class="card">
-                    <div class="card-body">
+                <div class="card border-0 card-custom-3 transition">
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title">Storage</h5>
                         <p class="card-text">Files currently taking up 158MB on local disk.</p>
-                        <a href="#" class="btn btn-primary">Move to Amazon S3</a>
+                    </div>
+                    <div class="card-footer border-0 bg-transparent">
+                        <a href="#" class="btn btn-outline-dark btn-custom mt-auto mx-auto">Move to Amazon S3</a>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="mt-5">
+            <a href="{{ url_for('.plant_conditions') }}" class="text-decoration-none text-reset">
+                <h2 class="">Plant Conditions</h2>
+            </a>
+        </div>
         <div class="row align-items-start text-center">
-            <div class="col">
-                <div class="card plant-conditions">
-                    <h4 class="card-title mt-2">Plant Conditions</h4>
+            <div class="col ">
+                <div class="card plant-conditions border-0 card-custom pb-4 test">
+
                     <div class="row align-items-center mt-4">
-                        <div class="col">
-                            <h5>Plant 1</h5>
-                            <p>LED: 70% 410nm</p>
-                            <p>Temperature: 25°C</p>
-                        </div>
-                        <div class="col">
-                            <h5>Plant 2</h5>
-                            <p>LED: 85% 480nm</p>
-                            <p>Temperature: 26°C</p>
-                        </div>
-                    </div>
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h5>Plant 3</h5>
-                            <p>LED: 25% 640nm</p>
-                            <p>Temperature: 24°C</p>
-                        </div>
-                        <div class="col">
-                            <h5>Plant 4</h5>
-                            <p>LED: 100% 530nm</p>
-                            <p>Temperature: 25°C</p>
-                        </div>
+
+                        {% for plant in plants %}
+                            <div class="col">
+                                <div class="small-card mx-auto">
+                                    <div class="small-card-details">
+                                        <h5>{{ plant.name }}</h5>
+                                        <p class="text-body">LED: {{ plant.brightness }}% {{ plant.wavelength }}nm</p>
+                                        <p class="text-body">Temperature: {{ plant.temperature }}°C</p>
+                                    </div>
+                                    <button class="small-card-button">More info</button>
+                                </div>
+                            </div>
+                        {% endfor %}
+
                     </div>
 
                 </div>
@@ -128,6 +78,5 @@
 
     </div>
 
-</main>
 
 {% endblock %}

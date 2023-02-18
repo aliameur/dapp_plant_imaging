@@ -1,0 +1,7 @@
+{% macro active_sidebar(view_name) %}
+    {% if request.endpoint.split(".")[1] == view_name %}
+        active
+    {% else: %}
+        link-secondary
+    {% endif %}
+{% endmacro %}

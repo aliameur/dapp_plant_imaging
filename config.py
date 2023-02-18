@@ -1,5 +1,7 @@
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -13,3 +15,5 @@ class ProdConfig(Config):
 
 class DevConfig(Config):
     DEBUG = True
+    PLANT_IP_ADDRESS = os.environ["IP_ADDRESS"]
+    SQLALCHEMY_DATABASE_URI = "sqlite:///database.db"
