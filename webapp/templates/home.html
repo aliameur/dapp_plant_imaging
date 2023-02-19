@@ -63,7 +63,7 @@
                                         <p class="text-body">LED: {{ plant.brightness }}% {{ plant.wavelength }}nm</p>
                                         <p class="text-body">Temperature: {{ plant.temperature }}°C</p>
                                     </div>
-                                    <button class="small-card-button">More info</button>
+                                    <a href="{{ url_for('.plant_conditions', plant_id=plant.id) }}" class="btn btn-outline-dark small-card-button">More info</a>
                                 </div>
                             </div>
                         {% endfor %}

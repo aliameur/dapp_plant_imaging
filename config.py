@@ -15,5 +15,6 @@ class ProdConfig(Config):
 
 class DevConfig(Config):
     DEBUG = True
-    PLANT_IP_ADDRESS = os.environ["IP_ADDRESS"]
     SQLALCHEMY_DATABASE_URI = "sqlite:///database.db"
+    PLANT_IP_ADDRESS = os.environ["IP_ADDRESS"]
+    DASHBOARD_PRESENT = True

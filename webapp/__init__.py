@@ -22,11 +22,13 @@ def create_app(object_name):
     db.init_app(app)
 
     from .api import create_module as api_create_module
-    from .dashboard import create_module as dashboard_create_module
     from .main import create_module as main_create_module
 
     api_create_module(app)
-    dashboard_create_module(app)
     main_create_module(app)
+
+    if app.config.get("DASHBOARD_PRESENT"):
+        from .dashboard import create_module as dashboard_create_module
+        dashboard_create_module(app)
 
     return app

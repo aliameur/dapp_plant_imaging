@@ -6,16 +6,11 @@ dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
 @dashboard_bp.route('/')
 def home():
-    # return main page
-    # jinja templating
-    # one page app
-    # create a
-    # TODO design the template to a satisfactory extent
-    # TODO add jinja templating to call from api
-
-    plants = get_plants()
-    print(plants.json)
-    return render_template("home.html", plants=plants.json)
+    plants = get_plants()[0].json
+    # TODO dynamically update local storage, user login, and rpi status
+    # TODO design rest of templates, and recheck page layout
+    # TODO add clipart on cards on dashboard
+    return render_template("home.html", plants=plants)
 
 
 @dashboard_bp.route('/plant_conditions')
