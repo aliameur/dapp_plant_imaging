@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, current_app, abort
 from .models import db, Plant, json_encoder, json_decoder, validate_json
 import socket
 from sqlalchemy.exc import SQLAlchemyError
+
 plant_bp = Blueprint('plant', __name__, url_prefix='/plant')
 
 
@@ -49,8 +50,8 @@ def conditions():
     sock.close()
 
 
-@plant_bp.route('/get_current_condition')
-def get_current_condition():
+@plant_bp.route('/get_latest_condition')
+def get_latest_condition():
     # talk to rpi and get current conditions
     # TODO storage of information updated onto database, sql or mongodb?
     plant_id = request.args.get('plant_ids')
@@ -59,8 +60,8 @@ def get_current_condition():
     return plant_json
 
 
-@plant_bp.route('/get_current_conditions')
-def get_current_conditions():
+@plant_bp.route('/get_latest_conditions')
+def get_latest_conditions():
     # If plant_ids are passed in the request arguments, retrieve only those plants
     plant_ids = request.args.get('plant_ids')
     if plant_ids:
@@ -91,13 +92,22 @@ def update_conditions():
 
 @plant_bp.route('/new_plant', methods=["POST"])
 def new_plant():
+    """
+    Add a new single plant by specifying conditions. Use ``new_plants`` for multiple plants at once. Must specify all
+    conditions except for ``name``, which is automatically generated if omitted.
+
+    Usage: json body of request is used for specifying plant conditions e.g. "wavelength": 10 results in a new plant
+    with  ``wavelength`` = 10
+
+    POST
+    """
     try:
-        json = validate_json(request.json, (300, 800), (0, 35))
-        plant = json_decoder(json)
-        db.session.add(plant)
+        json = validate_json(request.json, (300, 800), (0, 35))  # validate json data sent in request
+        plant = json_decoder(json)  # convert to Plant objects
+        db.session.add(plant)  # add to database
         db.session.commit()
         return jsonify({'message': f'Successfully added new plant'}), 200
-    except SQLAlchemyError:
+    except SQLAlchemyError:  # if error occurs during database process rollback and return 500
         db.session.rollback()
         abort(500, 'An error occurred while adding the new plant')
     except ValueError as e:
@@ -106,56 +116,79 @@ def new_plant():
 
 @plant_bp.route('/new_plants', methods=["POST"])
 def new_plants():
+    """
+    Add multiple plants at once by specifying conditions. Should only use for multi-addition but can still work for
+    single addition (use ``new_plant`` instead). Must specify all conditions except for ``name``, which is automatically
+    generated if omitted.
+
+    Usage: json body must be a list of plants, each with their conditions. For specifications on what the body requires,
+    see ``new_plant`` .
+
+    POST
+    """
     try:
-        plant_json_list = [validate_json(i, (300, 800), (0, 35)) for i in request.json]
-        plants = [json_decoder(plant_json) for plant_json in plant_json_list]
-        db.session.add_all(plants)
+        plant_json_list = [validate_json(i, (300, 800), (0, 35)) for i in request.json]  # validate json data
+        plants = [json_decoder(plant_json) for plant_json in plant_json_list]  # convert to Plant objects
+        db.session.add_all(plants) # add to database
         db.session.commit()
         return jsonify({'message': f'Successfully added {len(plants)} new plants'}), 200
-    except SQLAlchemyError:
+    except SQLAlchemyError: # if error occurs during database process rollback and return 500
         db.session.rollback()
         abort(500, 'An error occurred while adding the new plant')
-    except ValueError as e:
+    except ValueError as e:  # return 500 and error if json fails validation
         abort(500, e)
         # will only return first error found
 
 
-@plant_bp.route('/set_plants', methods=["POST"])
-def set_plants():
-    pass
-
-
 @plant_bp.route('/delete_plant/<int:plant_id>', methods=["DELETE"])
 def delete_plant(plant_id):
-    plant = Plant.query.get(plant_id)
-    if not plant:
+    """
+    Delete single plant by using plant id. Use ``delete_plants`` for multiple plants at once.
+
+    Usage: plant id is given as part of url e.g. "/delete_plant/2" deletes plant with ``id`` = 2
+
+    DELETE
+    """
+    plant = Plant.query.get(plant_id)  # find plant
+    if not plant:  # if not found return 404
         abort(404, 'Plant not found')
     try:
         db.session.delete(plant)
         db.session.commit()
         return jsonify({'message': 'Plant deleted successfully'}), 200
-    except SQLAlchemyError:
+    except SQLAlchemyError:  # if error occurs during deletion rollback and return 500
         db.session.rollback()
         abort(500, 'An error occurred while deleting the plant')
 
 
 @plant_bp.route('/delete_plants', methods=["DELETE"])
 def delete_plants():
+    """
+    Delete plants by using plant id. Should only use for multi-deletion but can still work for single deletion
+    (use ``delete_plant`` instead).
+
+    Usage: plant ids are given as part of URL query parameters e.g. "/delete_plants?2,3,4" deletes plants with ``id's``
+    2,3 and 4
+
+    DELETE
+    """
+    # get the plant IDs to be deleted from the URL query parameters
     plant_ids = request.args.get('plant_ids').split(",")
 
+    # if no plant IDs were provided, return a 400 Bad Request error
     if not plant_ids:
         abort(400, 'No plant ids provided')
     try:
-        plants = Plant.query.filter(Plant.id.in_(plant_ids)).all()
-        if len(plants) == 0:
+        plants = Plant.query.filter(Plant.id.in_(plant_ids)).all()  # find all the plants with the given IDs
+        if not plants:  # if no plants were found with the given IDs, return 404
             abort(404, 'No plants found')
-        for plant in plants:
+        for plant in plants:  # delete plants from database
             db.session.delete(plant)
         db.session.commit()
         return jsonify({'message': f'Successfully deleted {len(plants)} plants'}), 200
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:  # if error occurs during deletion rollback and return 500
         db.session.rollback()
-        abort(500, f'An error occurred while deleting plants {e}')
+        abort(500, 'An error occurred while deleting plants')
 
 
 # Example usage: set LED brightness to 50%

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from ..api.plant import get_current_conditions as get_plants
+from ..api.plant import get_latest_conditions as get_plants
 
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
