@@ -53,8 +53,8 @@ def conditions():
 @plant_bp.route('/get_plant')
 def get_plant():
     """
-    Get the latest available conditions for a single plant (temperature, wavelength, and brightness, name), queried by
-    plant id.
+    Get the latest available conditions for a single plant (temperature, wavelength, brightness, name, and pin numbers),
+    queried by plant id.
 
     Usage: plant_id is given as a URL request parameter. Returns the plant conditions as JSON.
 
@@ -73,8 +73,8 @@ def get_plant():
 @plant_bp.route('/get_plants')
 def get_plants():
     """
-    Get the latest available conditions for multiple plants (temperature, wavelength, and brightness, name), queried by
-    a list of plant ids. If no plant ids are given, returns all plants.
+    Get the latest available conditions for multiple plants (temperature, wavelength, brightness, name, and pin numbers)
+    queried by a list of plant ids. If no plant ids are given, returns all plants.
 
     Usage: plant_ids are given as a URL request parameter e.g. "?plant_ids=2,3,4" returns plants with ``id's`` 2,3 and
     4. Returns the plants' conditions as JSON.
@@ -99,11 +99,22 @@ def get_plants():
     return jsonify(plants_json), 200
 
 
-@plant_bp.route('/update_condition', methods=["PATCH"])
-def update_condition():
-    # talk to rpi and get current conditions
-    # TODO storage of information updated onto database, sql or mongodb?
-    pass
+@plant_bp.route('/edit_plant/<int:plant_id>', methods=["PATCH"])
+def edit_plant(plant_id):
+    plant = Plant.query.get(plant_id)
+    if not plant:
+        abort(404, "Plant not found")
+    data = request.json
+
+    try:
+        for key, value in data.items():
+            setattr(plant, key, value)
+        print(plant)
+        db.session.commit()
+        return jsonify({'message': 'Plant updated successfully'})
+    except SQLAlchemyError:
+        db.session.rollback()
+        abort(500, 'An error occurred while editing the plant')
 
 
 @plant_bp.route('/update_conditions', methods=["PATCH"])
@@ -218,3 +229,6 @@ def delete_plants():
 # command = 'led'
 # arg = 50
 # send_command(ip_address, command, arg)
+
+# talk to rpi and get current conditions
+    # TODO storage of information updated onto database, sql or mongodb?
