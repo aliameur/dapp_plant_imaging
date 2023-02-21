@@ -10,7 +10,7 @@ def home():
     if plants.status_code == 404:
         plants = []
     else:
-        plants = plants.json
+        plants = plants.json()
     # TODO dynamically update local storage, user login, and rpi status
     # TODO design rest of templates, and recheck page layout
     # TODO add clipart on cards on dashboard

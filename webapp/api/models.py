@@ -1,4 +1,5 @@
 from .. import db
+from types import NoneType
 
 
 class Plant(db.Model):
@@ -24,20 +25,8 @@ class Plant(db.Model):
     def __repr__(self):
         return f"<Plant {self.id} '{self.name}' {self.temperature}°C {self.wavelength}nm {self.brightness}%>"
 
-
-def json_encoder(plant: Plant) -> dict:
-    json = {
-        "id": plant.id,
-        "name": plant.name,
-        "wavelength": plant.wavelength,
-        "brightness": plant.brightness,
-        "temperature_sensor_pin": plant.temperature_sensor_pin,
-        "heating_element_pin": plant.heating_element_pin,
-        "led_red_pin": plant.led_red_pin,
-        "led_blue_pin": plant.led_blue_pin,
-        "led_green_pin": plant.led_green_pin
-    }
-    return json
+    def to_dict(self) -> dict:
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
 def json_decoder(json: dict) -> Plant:
@@ -45,7 +34,7 @@ def json_decoder(json: dict) -> Plant:
     return plant
 
 
-def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple) -> dict:
+def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edit=False) -> dict:
     name = data.get('name',)
     brightness = data.get('brightness')
     temperature = data.get('temperature')
@@ -57,50 +46,63 @@ def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple) -> 
     led_green_pin = data.get('led_green_pin')
     led_blue_pin = data.get('led_blue_pin')
 
-    if not all([name, brightness, temperature, wavelength, temperature_sensor_pin, heating_element_pin, led_red_pin,
-                led_green_pin, led_blue_pin]):
-        raise ValueError('Missing required field')
+    if not edit:
+        if not all([name, brightness, temperature, wavelength, temperature_sensor_pin, heating_element_pin, led_red_pin,
+                    led_green_pin, led_blue_pin]):
+            raise ValueError('Missing required field')
 
-    try:
-        brightness = int(brightness)
-        if not 0 <= brightness <= 100:
-            raise ValueError(f'Brightness {brightness} is not within range {(0, 100)}')
-    except ValueError:
-        raise ValueError(f'Brightness {brightness} is not an integer')
+    # validate brightness
+    if brightness:
+        try:
+            brightness = int(brightness)
+            if not 0 <= brightness <= 100:
+                raise ValueError(f'Brightness {brightness} is not within range {(0, 100)}')
+        except ValueError:
+            raise ValueError(f'Brightness {brightness} is not an integer')
 
-    try:
-        temperature = float(temperature)
-        if not temperature_bounds[0] <= temperature <= temperature_bounds[1]:
-            raise ValueError(f'Temperature {temperature} is not within range {temperature_bounds}')
-    except ValueError:
-        raise ValueError(f'Temperature {temperature} is not a float')
+    # validate temperature
+    if temperature:
+        try:
+            temperature = float(temperature)
+            if not temperature_bounds[0] <= temperature <= temperature_bounds[1]:
+                raise ValueError(f'Temperature {temperature} is not within range {temperature_bounds}')
+        except ValueError:
+            raise ValueError(f'Temperature {temperature} is not a float')
 
-    try:
-        wavelength = int(wavelength)
-        if not wavelength_bounds[0] <= wavelength <= wavelength_bounds[1]:
-            raise ValueError(f'Wavelength {wavelength} is not within range {wavelength_bounds}')
-    except ValueError:
-        raise ValueError(f'Wavelength {wavelength} is not an integer')
+    # validate wavelength
+    if wavelength:
+        try:
+            wavelength = int(wavelength)
+            if not wavelength_bounds[0] <= wavelength <= wavelength_bounds[1]:
+                raise ValueError(f'Wavelength {wavelength} is not within range {wavelength_bounds}')
+        except ValueError:
+            raise ValueError(f'Wavelength {wavelength} is not an integer')
 
-    try:
-        temperature_sensor_pin = int(temperature_sensor_pin)
-        heating_element_pin = int(heating_element_pin)
-        led_red_pin = int(led_red_pin)
-        led_green_pin = int(led_green_pin)
-        led_blue_pin = int(led_blue_pin)
-    except ValueError:
-        raise ValueError('Pin values must be integers')
-    return {
-        'name': name,
-        'brightness': brightness,
-        'temperature': temperature,
-        'wavelength': wavelength,
-        'temperature_sensor_pin': temperature_sensor_pin,
-        'heating_element_pin': heating_element_pin,
-        'led_red_pin': led_red_pin,
-        'led_green_pin': led_green_pin,
-        'led_blue_pin': led_blue_pin
-    }
+    # validate PINS
+    if all([temperature_sensor_pin, heating_element_pin, led_red_pin, led_green_pin, led_blue_pin]):
+        try:
+            temperature_sensor_pin = int(temperature_sensor_pin)
+            heating_element_pin = int(heating_element_pin)
+            led_red_pin = int(led_red_pin)
+            led_green_pin = int(led_green_pin)
+            led_blue_pin = int(led_blue_pin)
+        except ValueError:
+            raise ValueError('Pin values must be integers')
+
+    if not edit:
+        return {
+            'name': name,
+            'brightness': brightness,
+            'temperature': temperature,
+            'wavelength': wavelength,
+            'temperature_sensor_pin': temperature_sensor_pin,
+            'heating_element_pin': heating_element_pin,
+            'led_red_pin': led_red_pin,
+            'led_green_pin': led_green_pin,
+            'led_blue_pin': led_blue_pin
+        }
+    else:
+        return {name: value for name, value in locals().items() if not isinstance(value, (bool, dict, tuple, NoneType))}
 
 
 @db.event.listens_for(db.session, 'after_commit')

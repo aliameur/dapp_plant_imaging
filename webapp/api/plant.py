@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, abort
-from .models import db, Plant, json_encoder, json_decoder, validate_json
+from .models import db, Plant, json_decoder, validate_json
 import socket
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -50,8 +50,8 @@ def conditions():
     sock.close()
 
 
-@plant_bp.route('/get_plant')
-def get_plant():
+@plant_bp.route('/get_plant/<int:plant_id>')
+def get_plant(plant_id):
     """
     Get the latest available conditions for a single plant (temperature, wavelength, brightness, name, and pin numbers),
     queried by plant id.
@@ -60,13 +60,11 @@ def get_plant():
 
     GET
     """
-    plant_id = request.args.get('plant_id')  # get plant id from request parameter
-    if not plant_id:
-        abort(400, "No plant_id provided")
-    plant = Plant.query.get(plant_id)  # query database
+    # TODO change docstring
+    plant = Plant.query.get(plant_id)
     if not plant:
         abort(404, "Plant not found")
-    plant_json = json_encoder(plant)  # return result as json
+    plant_json = plant.to_dict()  # return result as json
     return plant_json
 
 
@@ -95,7 +93,7 @@ def get_plants():
         return abort(404, "No plants found")
 
     # serialize the plants and return them as a JSON response
-    plants_json = [json_encoder(plant) for plant in plants]
+    plants_json = [plant.to_dict() for plant in plants]
     return jsonify(plants_json), 200
 
 
@@ -104,17 +102,51 @@ def edit_plant(plant_id):
     plant = Plant.query.get(plant_id)
     if not plant:
         abort(404, "Plant not found")
-    data = request.json
 
     try:
-        for key, value in data.items():
+        data = validate_json(request.json,
+                             current_app.config.get("WAVELENGTH_BOUNDS"),
+                             current_app.config.get("TEMPERATURE_BOUNDS"),
+                             edit=True)  # validate json data sent in request
+        for key, value in data.items():  # update plant attributes
             setattr(plant, key, value)
-        print(plant)
         db.session.commit()
-        return jsonify({'message': 'Plant updated successfully'})
+        return jsonify({'message': 'Plant updated successfully'}), 200
     except SQLAlchemyError:
         db.session.rollback()
         abort(500, 'An error occurred while editing the plant')
+    except ValueError as e:
+        abort(500, e)
+
+
+@plant_bp.route('/edit_plants', methods=["PATCH"])
+def edit_plants():
+    plant_ids = request.args.get('plant_ids', "").split(",")
+    # if no plant IDs were provided, return a 400 Bad Request error
+    if not plant_ids:
+        abort(400, 'No plant ids provided')
+    try:
+        plants = Plant.query.filter(Plant.id.in_(plant_ids)).all()  # find all the plants with the given IDs
+        if not plants:  # if no plants were found with the given IDs, return 404
+            abort(404, 'No plants found')
+
+        plant_json_list = [validate_json(i,
+                                         current_app.config.get("WAVELENGTH_BOUNDS"),
+                                         current_app.config.get("TEMPERATURE_BOUNDS"),
+                                         edit=True)
+                           for i in request.json]
+
+        for data, plant in zip(plant_json_list, plants):
+            for key, value in data.items():  # update plant attributes
+                setattr(plant, key, value)
+
+        db.session.commit()
+        return jsonify({'message': f'Successfully edited {len(plants)} plants'}), 200
+    except SQLAlchemyError:  # if error occurs during editing rollback and return 500
+        db.session.rollback()
+        abort(500, 'An error occurred while editing plants')
+    except ValueError as e:
+        abort(500, e)
 
 
 @plant_bp.route('/update_conditions', methods=["PATCH"])
@@ -134,7 +166,9 @@ def new_plant():
     POST
     """
     try:
-        json = validate_json(request.json, (300, 800), (0, 35))  # validate json data sent in request
+        json = validate_json(request.json,
+                             current_app.config.get("WAVELENGTH_BOUNDS"),
+                             current_app.config.get("TEMPERATURE_BOUNDS"))  # validate json data sent in request
         plant = json_decoder(json)  # convert to Plant objects
         db.session.add(plant)  # add to database
         db.session.commit()
@@ -143,7 +177,6 @@ def new_plant():
         db.session.rollback()
         abort(500, 'An error occurred while adding the new plant')
     except ValueError as e:
-        print(e)
         abort(500, e)
 
 
@@ -155,12 +188,15 @@ def new_plants():
     generated if omitted.
 
     Usage: json body must be a list of plants, each with their conditions. For specifications on what the body requires,
-    see ``new_plant`` .
+    see ``new_plant``.
 
     POST
     """
     try:
-        plant_json_list = [validate_json(i, (300, 800), (0, 35)) for i in request.json]  # validate json data
+        plant_json_list = [validate_json(i,
+                                         current_app.config.get("WAVELENGTH_BOUNDS"),
+                                         current_app.config.get("TEMPERATURE_BOUNDS"))
+                           for i in request.json]  # validate json data
         plants = [json_decoder(plant_json) for plant_json in plant_json_list]  # convert to Plant objects
         db.session.add_all(plants)  # add to database
         db.session.commit()
@@ -231,4 +267,4 @@ def delete_plants():
 # send_command(ip_address, command, arg)
 
 # talk to rpi and get current conditions
-    # TODO storage of information updated onto database, sql or mongodb?
+# TODO storage of information updated onto database, sql or mongodb?
