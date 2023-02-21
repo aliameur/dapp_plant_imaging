@@ -4,6 +4,10 @@ import socket
 from sqlalchemy.exc import SQLAlchemyError
 
 plant_bp = Blueprint('plant', __name__, url_prefix='/plant')
+# TODO write docstrings for PATCH methods
+# TODO write RPI script for controlling of led and temperature
+# TODO write rabbitmq class for communication
+# TODO write fetch conditions request
 
 
 @plant_bp.route('/')
