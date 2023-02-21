@@ -1,9 +1,11 @@
 from flask import Flask
 from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 bootstrap = Bootstrap5()
 db = SQLAlchemy()
+migrate = Migrate()
 
 
 def create_app(object_name):
@@ -20,6 +22,7 @@ def create_app(object_name):
 
     bootstrap.init_app(app)  # will be required for dashboard setup TODO add option to remove if only api used
     db.init_app(app)
+    migrate.init_app(app, db)
 
     from .api import create_module as api_create_module
     from .main import create_module as main_create_module

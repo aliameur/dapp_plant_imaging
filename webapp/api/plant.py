@@ -50,38 +50,59 @@ def conditions():
     sock.close()
 
 
-@plant_bp.route('/get_latest_condition')
-def get_latest_condition():
-    # talk to rpi and get current conditions
-    # TODO storage of information updated onto database, sql or mongodb?
-    plant_id = request.args.get('plant_ids')
-    plant = Plant.query.get(plant_id)
-    plant_json = json_encoder(plant)
+@plant_bp.route('/get_plant')
+def get_plant():
+    """
+    Get the latest available conditions for a single plant (temperature, wavelength, and brightness, name), queried by
+    plant id.
+
+    Usage: plant_id is given as a URL request parameter. Returns the plant conditions as JSON.
+
+    GET
+    """
+    plant_id = request.args.get('plant_id')  # get plant id from request parameter
+    if not plant_id:
+        abort(400, "No plant_id provided")
+    plant = Plant.query.get(plant_id)  # query database
+    if not plant:
+        abort(404, "Plant not found")
+    plant_json = json_encoder(plant)  # return result as json
     return plant_json
 
 
-@plant_bp.route('/get_latest_conditions')
-def get_latest_conditions():
-    # If plant_ids are passed in the request arguments, retrieve only those plants
+@plant_bp.route('/get_plants')
+def get_plants():
+    """
+    Get the latest available conditions for multiple plants (temperature, wavelength, and brightness, name), queried by
+    a list of plant ids. If no plant ids are given, returns all plants.
+
+    Usage: plant_ids are given as a URL request parameter e.g. "?plant_ids=2,3,4" returns plants with ``id's`` 2,3 and
+    4. Returns the plants' conditions as JSON.
+
+    GET
+    """
+    # if plant_ids are passed in the request arguments, retrieve only those plants
     plant_ids = request.args.get('plant_ids')
     if plant_ids:
         plant_ids = plant_ids.split(',')
         plants = Plant.query.filter(Plant.id.in_(plant_ids)).all()
     else:
-        # Otherwise, retrieve all plants
+        # otherwise retrieve all plants
         plants = Plant.query.all()
 
-    # If no plants are found, return a 404 response
+    # if no plants are found, return 404
     if not plants:
         return abort(404, "No plants found")
 
-    # Serialize the plants and return them as a JSON response
+    # serialize the plants and return them as a JSON response
     plants_json = [json_encoder(plant) for plant in plants]
     return jsonify(plants_json), 200
 
 
 @plant_bp.route('/update_condition', methods=["PATCH"])
 def update_condition():
+    # talk to rpi and get current conditions
+    # TODO storage of information updated onto database, sql or mongodb?
     pass
 
 
@@ -111,6 +132,7 @@ def new_plant():
         db.session.rollback()
         abort(500, 'An error occurred while adding the new plant')
     except ValueError as e:
+        print(e)
         abort(500, e)
 
 
@@ -129,10 +151,10 @@ def new_plants():
     try:
         plant_json_list = [validate_json(i, (300, 800), (0, 35)) for i in request.json]  # validate json data
         plants = [json_decoder(plant_json) for plant_json in plant_json_list]  # convert to Plant objects
-        db.session.add_all(plants) # add to database
+        db.session.add_all(plants)  # add to database
         db.session.commit()
         return jsonify({'message': f'Successfully added {len(plants)} new plants'}), 200
-    except SQLAlchemyError: # if error occurs during database process rollback and return 500
+    except SQLAlchemyError:  # if error occurs during database process rollback and return 500
         db.session.rollback()
         abort(500, 'An error occurred while adding the new plant')
     except ValueError as e:  # return 500 and error if json fails validation
@@ -167,13 +189,13 @@ def delete_plants():
     Delete plants by using plant id. Should only use for multi-deletion but can still work for single deletion
     (use ``delete_plant`` instead).
 
-    Usage: plant ids are given as part of URL query parameters e.g. "/delete_plants?2,3,4" deletes plants with ``id's``
-    2,3 and 4
+    Usage: plant ids are given as part of URL query parameters e.g. "?plant_ids=2,3,4" deletes plants with ``id's``
+    2,3 and 4.
 
     DELETE
     """
     # get the plant IDs to be deleted from the URL query parameters
-    plant_ids = request.args.get('plant_ids').split(",")
+    plant_ids = request.args.get('plant_ids', "").split(",")
 
     # if no plant IDs were provided, return a 400 Bad Request error
     if not plant_ids:

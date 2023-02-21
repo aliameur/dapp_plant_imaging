@@ -1,12 +1,16 @@
-from flask import Blueprint, render_template
-from ..api.plant import get_latest_conditions as get_plants
+from flask import Blueprint, render_template, url_for
+import requests
 
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
 
 @dashboard_bp.route('/')
 def home():
-    plants = get_plants()[0].json
+    plants = requests.get(url_for("api.plant.get_plants", _external=True))
+    if plants.status_code == 404:
+        plants = []
+    else:
+        plants = plants.json
     # TODO dynamically update local storage, user login, and rpi status
     # TODO design rest of templates, and recheck page layout
     # TODO add clipart on cards on dashboard
