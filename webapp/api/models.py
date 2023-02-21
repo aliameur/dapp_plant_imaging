@@ -16,6 +16,11 @@ class Plant(db.Model):
     led_green_pin = db.Column(db.Integer, nullable=False, unique=True)
     led_blue_pin = db.Column(db.Integer, nullable=False, unique=True)
 
+    __table_args__ = (
+        db.UniqueConstraint('temperature_sensor_pin', 'heating_element_pin', 'led_red_pin', 'led_green_pin',
+                            'led_blue_pin', name='unique_plant'),
+    )
+
     def __repr__(self):
         return f"<Plant {self.id} '{self.name}' {self.temperature}°C {self.wavelength}nm {self.brightness}%>"
 
