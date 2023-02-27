@@ -13,13 +13,10 @@ class Plant(db.Model):
 
     temperature_sensor_pin = db.Column(db.Integer, nullable=False, unique=True)
     heating_element_pin = db.Column(db.Integer, nullable=False, unique=True)
-    led_red_pin = db.Column(db.Integer, nullable=False, unique=True)
-    led_green_pin = db.Column(db.Integer, nullable=False, unique=True)
-    led_blue_pin = db.Column(db.Integer, nullable=False, unique=True)
 
     __table_args__ = (
-        db.UniqueConstraint('temperature_sensor_pin', 'heating_element_pin', 'led_red_pin', 'led_green_pin',
-                            'led_blue_pin', name='unique_plant'),
+        db.UniqueConstraint('temperature_sensor_pin', 'heating_element_pin',
+                            name='unique_plant'),
     )
 
     def __repr__(self):
@@ -34,7 +31,7 @@ def json_decoder(json: dict) -> Plant:
     return plant
 
 
-def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edit=False) -> dict:
+def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edit: bool = False) -> dict:
     name = data.get('name',)
     brightness = data.get('brightness')
     temperature = data.get('temperature')
@@ -42,13 +39,9 @@ def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edi
 
     temperature_sensor_pin = data.get('temperature_sensor_pin')
     heating_element_pin = data.get('heating_element_pin')
-    led_red_pin = data.get('led_red_pin')
-    led_green_pin = data.get('led_green_pin')
-    led_blue_pin = data.get('led_blue_pin')
 
     if not edit:
-        if not all([name, brightness, temperature, wavelength, temperature_sensor_pin, heating_element_pin, led_red_pin,
-                    led_green_pin, led_blue_pin]):
+        if not all([name, brightness, temperature, wavelength, temperature_sensor_pin, heating_element_pin]):
             raise ValueError('Missing required field')
 
     # validate brightness
@@ -79,13 +72,10 @@ def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edi
             raise ValueError(f'Wavelength {wavelength} is not an integer')
 
     # validate PINS
-    if all([temperature_sensor_pin, heating_element_pin, led_red_pin, led_green_pin, led_blue_pin]):
+    if all([temperature_sensor_pin, heating_element_pin]):
         try:
             temperature_sensor_pin = int(temperature_sensor_pin)
             heating_element_pin = int(heating_element_pin)
-            led_red_pin = int(led_red_pin)
-            led_green_pin = int(led_green_pin)
-            led_blue_pin = int(led_blue_pin)
         except ValueError:
             raise ValueError('Pin values must be integers')
 
@@ -97,9 +87,6 @@ def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edi
             'wavelength': wavelength,
             'temperature_sensor_pin': temperature_sensor_pin,
             'heating_element_pin': heating_element_pin,
-            'led_red_pin': led_red_pin,
-            'led_green_pin': led_green_pin,
-            'led_blue_pin': led_blue_pin
         }
     else:
         return {name: value for name, value in locals().items() if not isinstance(value, (bool, dict, tuple, NoneType))}

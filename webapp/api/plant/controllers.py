@@ -1,60 +1,17 @@
 from flask import Blueprint, jsonify, request, current_app, abort
-from webapp.api.models import db, Plant, json_decoder, validate_json
-import socket
+from ..models import db, Plant, json_decoder, validate_json
 from sqlalchemy.exc import SQLAlchemyError
 
+
 plant_bp = Blueprint('plant', __name__, url_prefix='/plant')
-# TODO write docstrings for PATCH methods
+# TODO finish docstrings and documentation on postman
 # TODO write RPI script for controlling of led and temperature
 # TODO write rabbitmq class for communication
 # TODO write fetch conditions request
+# TODO finish docstrings and documentation on postman
 
 
-@plant_bp.route('/')
-def home():
-    return jsonify({"message": "plant endpoint"})
-
-
-@plant_bp.route('/conditions')
-def conditions():
-    ip_address = current_app.config.PLANT_IP_ADDRESS
-    # get argument values and check for errors
-    plant_id = request.args.get("plant_id", default=-1)
-    if plant_id == -1:
-        return jsonify({"error": "please specify a plant_id"})
-    temperature = request.args.get("temperature", default=-1, type=float)
-    brightness = request.args.get("brightness", default=-1, type=int)
-    if temperature == -1 and brightness == -1:
-        return jsonify({"error": "please specify a condition"})
-
-    # check for value bounds
-    # TODO to update value bounds, ask em
-    # TODO add value bounds on webapp w/ javascript
-    if not 0 <= brightness <= 100 and brightness != -1:
-        error_dict = {"error": ["brightness should be between 0 and 100"]}
-
-    if not 0 <= temperature <= 50 and temperature != -1:
-        try:
-            error_dict["error"].append("temperature should be between 0 and 50")
-        except NameError:
-            error_dict = {"error": "temperature should be between 0 and 50"}
-    try:
-        return jsonify(error_dict)
-    except NameError:
-        pass
-
-    # TODO test with raspberry pi ASAP
-    # send command to raspberry pi over WIFI
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((ip_address, 8888))
-    if temperature != -1:
-        sock.sendall(f'heat,{temperature},{plant_id}'.encode())
-    if brightness != -1:
-        sock.sendall(f'led,{brightness},{plant_id}'.encode())
-    sock.close()
-
-
-@plant_bp.route('/get_plant/<int:plant_id>')
+@plant_bp.route('/<int:plant_id>')
 def get_plant(plant_id):
     """
     Get the latest available conditions for a single plant (temperature, wavelength, brightness, name, and pin numbers),
@@ -64,7 +21,6 @@ def get_plant(plant_id):
 
     GET
     """
-    # TODO change docstring
     plant = Plant.query.get(plant_id)
     if not plant:
         abort(404, "Plant not found")
@@ -72,7 +28,7 @@ def get_plant(plant_id):
     return plant_json
 
 
-@plant_bp.route('/get_plants')
+@plant_bp.route('/')
 def get_plants():
     """
     Get the latest available conditions for multiple plants (temperature, wavelength, brightness, name, and pin numbers)
@@ -101,7 +57,7 @@ def get_plants():
     return jsonify(plants_json), 200
 
 
-@plant_bp.route('/edit_plant/<int:plant_id>', methods=["PATCH"])
+@plant_bp.route('/<int:plant_id>', methods=["PATCH"])
 def edit_plant(plant_id):
     plant = Plant.query.get(plant_id)
     if not plant:
@@ -123,7 +79,7 @@ def edit_plant(plant_id):
         abort(500, e)
 
 
-@plant_bp.route('/edit_plants', methods=["PATCH"])
+@plant_bp.route('/', methods=["PATCH"])
 def edit_plants():
     plant_ids = request.args.get('plant_ids', "").split(",")
     # if no plant IDs were provided, return a 400 Bad Request error
@@ -153,67 +109,50 @@ def edit_plants():
         abort(500, e)
 
 
-@plant_bp.route('/update_conditions', methods=["PATCH"])
-def update_conditions():
-    pass
-
-
-@plant_bp.route('/new_plant', methods=["POST"])
+@plant_bp.route('/', methods=["POST"])
 def new_plant():
     """
     Add a new single plant by specifying conditions. Use ``new_plants`` for multiple plants at once. Must specify all
     conditions except for ``name``, which is automatically generated if omitted.
 
     Usage: json body of request is used for specifying plant conditions e.g. "wavelength": 10 results in a new plant
-    with  ``wavelength`` = 10
+    with  ``wavelength = 10``
 
     POST
     """
-    try:
-        json = validate_json(request.json,
-                             current_app.config.get("WAVELENGTH_BOUNDS"),
-                             current_app.config.get("TEMPERATURE_BOUNDS"))  # validate json data sent in request
-        plant = json_decoder(json)  # convert to Plant objects
-        db.session.add(plant)  # add to database
-        db.session.commit()
-        return jsonify({'message': f'Successfully added new plant'}), 200
-    except SQLAlchemyError:  # if error occurs during database process rollback and return 500
-        db.session.rollback()
-        abort(500, 'An error occurred while adding the new plant')
-    except ValueError as e:
-        abort(500, e)
+    if not isinstance(request.json, list):
+        try:
+            json = validate_json(request.json,
+                                 current_app.config.get("WAVELENGTH_BOUNDS"),
+                                 current_app.config.get("TEMPERATURE_BOUNDS"))  # validate json data sent in request
+            plant = json_decoder(json)  # convert to Plant objects
+            db.session.add(plant)  # add to database
+            db.session.commit()
+            return jsonify({'message': f'Successfully added new plant'}), 200
+        except SQLAlchemyError:  # if error occurs during database process rollback and return 500
+            db.session.rollback()
+            abort(500, 'An error occurred while adding the new plant')
+        except ValueError as e:
+            abort(500, e)
+    else:
+        try:
+            plant_json_list = [validate_json(i,
+                                             current_app.config.get("WAVELENGTH_BOUNDS"),
+                                             current_app.config.get("TEMPERATURE_BOUNDS"))
+                               for i in request.json]  # validate json data
+            plants = [json_decoder(plant_json) for plant_json in plant_json_list]  # convert to Plant objects
+            db.session.add_all(plants)  # add to database
+            db.session.commit()
+            return jsonify({'message': f'Successfully added {len(plants)} new plants'}), 200
+        except SQLAlchemyError:  # if error occurs during database process rollback and return 500
+            db.session.rollback()
+            abort(500, 'An error occurred while adding the new plant')
+        except ValueError as e:  # return 500 and error if json fails validation
+            abort(500, e)
+            # will only return first error found
 
 
-@plant_bp.route('/new_plants', methods=["POST"])
-def new_plants():
-    """
-    Add multiple plants at once by specifying conditions. Should only use for multi-addition but can still work for
-    single addition (use ``new_plant`` instead). Must specify all conditions except for ``name``, which is automatically
-    generated if omitted.
-
-    Usage: json body must be a list of plants, each with their conditions. For specifications on what the body requires,
-    see ``new_plant``.
-
-    POST
-    """
-    try:
-        plant_json_list = [validate_json(i,
-                                         current_app.config.get("WAVELENGTH_BOUNDS"),
-                                         current_app.config.get("TEMPERATURE_BOUNDS"))
-                           for i in request.json]  # validate json data
-        plants = [json_decoder(plant_json) for plant_json in plant_json_list]  # convert to Plant objects
-        db.session.add_all(plants)  # add to database
-        db.session.commit()
-        return jsonify({'message': f'Successfully added {len(plants)} new plants'}), 200
-    except SQLAlchemyError:  # if error occurs during database process rollback and return 500
-        db.session.rollback()
-        abort(500, 'An error occurred while adding the new plant')
-    except ValueError as e:  # return 500 and error if json fails validation
-        abort(500, e)
-        # will only return first error found
-
-
-@plant_bp.route('/delete_plant/<int:plant_id>', methods=["DELETE"])
+@plant_bp.route('/<int:plant_id>', methods=["DELETE"])
 def delete_plant(plant_id):
     """
     Delete single plant by using plant id. Use ``delete_plants`` for multiple plants at once.
@@ -234,7 +173,7 @@ def delete_plant(plant_id):
         abort(500, 'An error occurred while deleting the plant')
 
 
-@plant_bp.route('/delete_plants', methods=["DELETE"])
+@plant_bp.route('/', methods=["DELETE"])
 def delete_plants():
     """
     Delete plants by using plant id. Should only use for multi-deletion but can still work for single deletion
@@ -262,6 +201,11 @@ def delete_plants():
     except SQLAlchemyError:  # if error occurs during deletion rollback and return 500
         db.session.rollback()
         abort(500, 'An error occurred while deleting plants')
+
+
+@plant_bp.route('/update_conditions', methods=["PATCH"])
+def update_conditions():
+    pass
 
 
 # Example usage: set LED brightness to 50%
