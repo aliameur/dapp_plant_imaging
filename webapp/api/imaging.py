@@ -16,3 +16,9 @@ def start_imaging_sequence():
 @imaging_bp.route("/")
 def home():
     return jsonify({"message": "imaging endpoint"})
+
+
+# TODO swap plants
+# TODO manual mode, position camera correctly
+# TODO make cannon integration modular
+#
