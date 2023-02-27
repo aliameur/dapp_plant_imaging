@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app, abort
-from .models import db, Plant, json_decoder, validate_json
+from webapp.api.models import db, Plant, json_decoder, validate_json
 import socket
 from sqlalchemy.exc import SQLAlchemyError
 

@@ -4,9 +4,6 @@ from .imaging import imaging_bp
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
-api_bp.register_blueprint(plant_bp)
-api_bp.register_blueprint(imaging_bp)
-
 
 @api_bp.route('/config')
 def config():
