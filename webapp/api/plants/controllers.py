@@ -14,12 +14,15 @@ plants_bp = Blueprint('plants', __name__, url_prefix='/plants')
 @plants_bp.route('/<int:plant_id>')
 def get_plant(plant_id):
     """
-    Get all attributes and ideal conditions for a single plant () the latest available conditions for a single plant (temperature, wavelength, brightness, name, and pin numbers),
-    queried by plant id.
+    Get all attributes and ideal conditions for a single plant by querying it using its unique plant ID.
 
-    Usage: plant_id is given as a URL request parameter. Returns the plant conditions as JSON.
+    Usage:
+    Send a GET request to /plants/<int:plant_id> endpoint.
 
-    GET
+    Raises:
+    404 Error - If the plant with the specified ID does not exist in the database.
+
+    :return: A JSON object containing the plant's name, pins, temperature, wavelength, and brightness.
     """
     plant = Plant.query.get(plant_id)
     if not plant:
@@ -31,13 +34,17 @@ def get_plant(plant_id):
 @plants_bp.route('/')
 def get_plants():
     """
-    Get the latest available conditions for multiple plants (temperature, wavelength, brightness, name, and pin numbers)
+    Get the latest available conditions for multiple plants (temperature, wavelength, brightness, name, and pins)
     queried by a list of plant ids. If no plant ids are given, returns all plants.
 
-    Usage: plant_ids are given as a URL request parameter e.g. "?plant_ids=2,3,4" returns plants with ``id's`` 2,3 and
-    4. Returns the plants' conditions as JSON.
+    Usage: Send a GET request to /plants/ endpoint. If you want to retrieve data for specific plants only, pass
+    their ids as comma-separated values in the `plant_ids` query parameter, which will return all plants with matching
+    ids. If no `plant_ids` parameter is passed, all available plants will be returned.
 
-    GET
+    Raises:
+    404 Error - If the plants with the specified IDs does not exist in the database.
+
+    :return: A JSON response containing the latest conditions for the requested plants.
     """
     # if plant_ids are passed in the request arguments, retrieve only those plants
     plant_ids = request.args.get('plant_ids')
@@ -59,6 +66,19 @@ def get_plants():
 
 @plants_bp.route('/<int:plant_id>', methods=["PATCH"])
 def edit_plant(plant_id):
+    """
+    Update attributes of a single plant by using plant id.
+
+    Usage: Send a PATCH request to /plants/<plant_id> endpoint where <plant_id> is the id of the plant you want to edit.
+    The request body should contain a JSON object with the new attributes for the plant. Any attributes not specified in
+    the JSON object will remain unchanged.
+
+    Raises:
+    404 Error - If the plant with the specified ID does not exist in the database.
+    500 Error - If an error occurs while editing the plant
+
+    :return: A JSON response indicating the success of the edit operation.
+    """
     plant = Plant.query.get(plant_id)
     if not plant:
         abort(404, "Plant not found")
@@ -82,15 +102,21 @@ def edit_plant(plant_id):
 @plants_bp.route('/', methods=["POST"])
 def new_plant():
     """
-    Add a new single plant by specifying conditions. Use ``new_plants`` for multiple plants at once. Must specify all
-    conditions except for ``name``, which is automatically generated if omitted.
+    Add a new plant or multiple plants to the database with specified attributes and ideal conditions. If a single plant
+    is to be added, all attributes and ideal conditions except for ``name`` must be specified, since the name will be
+    automatically generated if omitted. For multiple plants, send a list of plant conditions in the request body.
 
-    Usage: json body of request is used for specifying plant conditions e.g. "wavelength": 10 results in a new plant
-    with  ``wavelength = 10``
+    Usage: Send a POST request to /plants/ endpoint with a JSON body containing the attributes and ideal conditions for
+    the plant(s) to be added. To add a single plant, specify the attributes directly in the JSON body. To add multiple
+    plants, send a list of plant attributes. Plant attributes include: name, temperature sensor pin, heating element
+    pin, wavelength, temperature, and brightness.
 
-    POST
+    Raises:
+    500 Error - If the request is not valid, or an error occurs while adding the new plant(s) to the database.
+
+    :return: A JSON response indicating the success or failure of the request.
     """
-    if not isinstance(request.json, list):
+    if isinstance(request.json, dict):
         try:
             json = validate_json(request.json,
                                  current_app.config.get("WAVELENGTH_BOUNDS"),
@@ -125,11 +151,15 @@ def new_plant():
 @plants_bp.route('/<int:plant_id>', methods=["DELETE"])
 def delete_plant(plant_id):
     """
-    Delete single plant by using plant id. Use ``delete_plants`` for multiple plants at once.
+    Delete a single plant by its unique plant ID.
 
-    Usage: plant id is given as part of url e.g. "/delete_plant/2" deletes plant with ``id`` = 2
+    Usage: To delete a single plant, send a DELETE request to /plants/<int:plant_id>. The plant's unique ID must be
+    included in the URL as a parameter. For example, "/plants/2" will delete the plant with ID 2.
 
-    DELETE
+    Raises:
+    404 Error - If the plant with the specified ID does not exist in the database.
+
+    :return: A JSON response containing a message indicating that the plant was successfully deleted.
     """
     plant = Plant.query.get(plant_id)  # find plant
     if not plant:  # if not found return 404
@@ -137,7 +167,7 @@ def delete_plant(plant_id):
     try:
         db.session.delete(plant)
         db.session.commit()
-        return jsonify({'message': 'Plant deleted successfully'}), 200
+        return jsonify({'message': 'Plant deleted successfully'}), 200  # TODO return 200 or 204
     except SQLAlchemyError:  # if error occurs during deletion rollback and return 500
         db.session.rollback()
         abort(500, 'An error occurred while deleting the plant')
