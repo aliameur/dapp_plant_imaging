@@ -1,20 +1,20 @@
 from flask import Blueprint, jsonify, request, current_app, abort
-from ..models import db, Plant, json_decoder, validate_json
+from ..models import db, Plant, validate_json
 from sqlalchemy.exc import SQLAlchemyError
+from ... import rabbitmq
+from pika.exceptions import ConnectionBlockedTimeout
 
-
-plant_bp = Blueprint('plant', __name__, url_prefix='/plant')
+plants_bp = Blueprint('plants', __name__, url_prefix='/plants')
 # TODO finish docstrings and documentation on postman
 # TODO write RPI script for controlling of led and temperature
-# TODO write rabbitmq class for communication
-# TODO write fetch conditions request
+# TODO write fetch conditions request error handling
 # TODO finish docstrings and documentation on postman
 
 
-@plant_bp.route('/<int:plant_id>')
+@plants_bp.route('/<int:plant_id>')
 def get_plant(plant_id):
     """
-    Get the latest available conditions for a single plant (temperature, wavelength, brightness, name, and pin numbers),
+    Get all attributes and ideal conditions for a single plant () the latest available conditions for a single plant (temperature, wavelength, brightness, name, and pin numbers),
     queried by plant id.
 
     Usage: plant_id is given as a URL request parameter. Returns the plant conditions as JSON.
@@ -28,7 +28,7 @@ def get_plant(plant_id):
     return plant_json
 
 
-@plant_bp.route('/')
+@plants_bp.route('/')
 def get_plants():
     """
     Get the latest available conditions for multiple plants (temperature, wavelength, brightness, name, and pin numbers)
@@ -57,7 +57,7 @@ def get_plants():
     return jsonify(plants_json), 200
 
 
-@plant_bp.route('/<int:plant_id>', methods=["PATCH"])
+@plants_bp.route('/<int:plant_id>', methods=["PATCH"])
 def edit_plant(plant_id):
     plant = Plant.query.get(plant_id)
     if not plant:
@@ -79,37 +79,7 @@ def edit_plant(plant_id):
         abort(500, e)
 
 
-@plant_bp.route('/', methods=["PATCH"])
-def edit_plants():
-    plant_ids = request.args.get('plant_ids', "").split(",")
-    # if no plant IDs were provided, return a 400 Bad Request error
-    if not plant_ids:
-        abort(400, 'No plant ids provided')
-    try:
-        plants = Plant.query.filter(Plant.id.in_(plant_ids)).all()  # find all the plants with the given IDs
-        if not plants:  # if no plants were found with the given IDs, return 404
-            abort(404, 'No plants found')
-
-        plant_json_list = [validate_json(i,
-                                         current_app.config.get("WAVELENGTH_BOUNDS"),
-                                         current_app.config.get("TEMPERATURE_BOUNDS"),
-                                         edit=True)
-                           for i in request.json]
-
-        for data, plant in zip(plant_json_list, plants):
-            for key, value in data.items():  # update plant attributes
-                setattr(plant, key, value)
-
-        db.session.commit()
-        return jsonify({'message': f'Successfully edited {len(plants)} plants'}), 200
-    except SQLAlchemyError:  # if error occurs during editing rollback and return 500
-        db.session.rollback()
-        abort(500, 'An error occurred while editing plants')
-    except ValueError as e:
-        abort(500, e)
-
-
-@plant_bp.route('/', methods=["POST"])
+@plants_bp.route('/', methods=["POST"])
 def new_plant():
     """
     Add a new single plant by specifying conditions. Use ``new_plants`` for multiple plants at once. Must specify all
@@ -125,7 +95,7 @@ def new_plant():
             json = validate_json(request.json,
                                  current_app.config.get("WAVELENGTH_BOUNDS"),
                                  current_app.config.get("TEMPERATURE_BOUNDS"))  # validate json data sent in request
-            plant = json_decoder(json)  # convert to Plant objects
+            plant = Plant(**json)  # convert to Plant objects
             db.session.add(plant)  # add to database
             db.session.commit()
             return jsonify({'message': f'Successfully added new plant'}), 200
@@ -140,7 +110,7 @@ def new_plant():
                                              current_app.config.get("WAVELENGTH_BOUNDS"),
                                              current_app.config.get("TEMPERATURE_BOUNDS"))
                                for i in request.json]  # validate json data
-            plants = [json_decoder(plant_json) for plant_json in plant_json_list]  # convert to Plant objects
+            plants = [Plant(**plant_json) for plant_json in plant_json_list]  # convert to Plant objects
             db.session.add_all(plants)  # add to database
             db.session.commit()
             return jsonify({'message': f'Successfully added {len(plants)} new plants'}), 200
@@ -152,7 +122,7 @@ def new_plant():
             # will only return first error found
 
 
-@plant_bp.route('/<int:plant_id>', methods=["DELETE"])
+@plants_bp.route('/<int:plant_id>', methods=["DELETE"])
 def delete_plant(plant_id):
     """
     Delete single plant by using plant id. Use ``delete_plants`` for multiple plants at once.
@@ -173,39 +143,19 @@ def delete_plant(plant_id):
         abort(500, 'An error occurred while deleting the plant')
 
 
-@plant_bp.route('/', methods=["DELETE"])
-def delete_plants():
-    """
-    Delete plants by using plant id. Should only use for multi-deletion but can still work for single deletion
-    (use ``delete_plant`` instead).
+@plants_bp.route('/<int:plant_id>/conditions')
+def conditions(plant_id):
+    plant = Plant.query.get(plant_id)
+    if not plant:
+        return abort(404, "Plant not found")
 
-    Usage: plant ids are given as part of URL query parameters e.g. "?plant_ids=2,3,4" deletes plants with ``id's``
-    2,3 and 4.
-
-    DELETE
-    """
-    # get the plant IDs to be deleted from the URL query parameters
-    plant_ids = request.args.get('plant_ids', "").split(",")
-
-    # if no plant IDs were provided, return a 400 Bad Request error
-    if not plant_ids:
-        abort(400, 'No plant ids provided')
-    try:
-        plants = Plant.query.filter(Plant.id.in_(plant_ids)).all()  # find all the plants with the given IDs
-        if not plants:  # if no plants were found with the given IDs, return 404
-            abort(404, 'No plants found')
-        for plant in plants:  # delete plants from database
-            db.session.delete(plant)
-        db.session.commit()
-        return jsonify({'message': f'Successfully deleted {len(plants)} plants'}), 200
-    except SQLAlchemyError:  # if error occurs during deletion rollback and return 500
-        db.session.rollback()
-        abort(500, 'An error occurred while deleting plants')
-
-
-@plant_bp.route('/update_conditions', methods=["PATCH"])
-def update_conditions():
-    pass
+    try:  # TODO add error handling if no communication (bad connection) or other failure
+        plant_conditions = rabbitmq.call(f"get,{plant_id}")
+    except ConnectionBlockedTimeout:
+        return abort(500, "Timeout occured")
+    except Exception as e:
+        return abort(500, e)
+    return jsonify(plant_conditions), 200
 
 
 # Example usage: set LED brightness to 50%

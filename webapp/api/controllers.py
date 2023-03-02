@@ -1,6 +1,4 @@
 from flask import Blueprint, jsonify, request
-from .plant import plant_bp
-from .imaging import imaging_bp
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 

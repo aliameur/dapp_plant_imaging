@@ -10,6 +10,7 @@ class Plant(db.Model):
     temperature = db.Column(db.Float, nullable=False)
     wavelength = db.Column(db.Integer, nullable=False)
     brightness = db.Column(db.Integer, nullable=False)
+    led = db.Column(db.Integer, nullable=False, unique=True)
 
     temperature_sensor_pin = db.Column(db.Integer, nullable=False, unique=True)
     heating_element_pin = db.Column(db.Integer, nullable=False, unique=True)
@@ -26,11 +27,6 @@ class Plant(db.Model):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
-def json_decoder(json: dict) -> Plant:
-    plant = Plant(**json)
-    return plant
-
-
 def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edit: bool = False) -> dict:
     name = data.get('name',)
     brightness = data.get('brightness')
@@ -39,9 +35,10 @@ def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edi
 
     temperature_sensor_pin = data.get('temperature_sensor_pin')
     heating_element_pin = data.get('heating_element_pin')
+    led = data.get('led')
 
     if not edit:
-        if not all([name, brightness, temperature, wavelength, temperature_sensor_pin, heating_element_pin]):
+        if not all([name, brightness, temperature, wavelength, temperature_sensor_pin, heating_element_pin, led]):
             raise ValueError('Missing required field')
 
     # validate brightness
@@ -72,7 +69,7 @@ def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edi
             raise ValueError(f'Wavelength {wavelength} is not an integer')
 
     # validate PINS
-    if all([temperature_sensor_pin, heating_element_pin]):
+    if all([temperature_sensor_pin, heating_element_pin, led]):
         try:
             temperature_sensor_pin = int(temperature_sensor_pin)
             heating_element_pin = int(heating_element_pin)
@@ -87,6 +84,7 @@ def validate_json(data, wavelength_bounds: tuple, temperature_bounds: tuple, edi
             'wavelength': wavelength,
             'temperature_sensor_pin': temperature_sensor_pin,
             'heating_element_pin': heating_element_pin,
+            'led': led
         }
     else:
         return {name: value for name, value in locals().items() if not isinstance(value, (bool, dict, tuple, NoneType))}

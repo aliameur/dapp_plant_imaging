@@ -3,11 +3,6 @@ from flask import Blueprint, jsonify, request, abort
 imaging_bp = Blueprint('imaging', __name__, url_prefix='/imaging')
 
 
-@imaging_bp.route('/start_imaging_sequence')
-def start_imaging_sequence():
-    pass
-
-
 @imaging_bp.route("/")
 def home():
     return jsonify({"message": "imaging endpoint"})
@@ -44,4 +39,3 @@ def sequence(plant_id):
 
     # send command to raspberry pi using RabbitMQ
     # e.g. send(direction, position)
-
