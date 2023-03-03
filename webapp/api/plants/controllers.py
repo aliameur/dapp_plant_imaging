@@ -197,7 +197,7 @@ def current_conditions(plant_id):
 
     try:  # TODO add error handling if no communication (bad connection) or other failure
         # talk to the raspberry pi using a RabbitMQ broker and returns current conditions
-        plant_conditions = rabbitmq.call(f"get,{plant_id}")
+        plant_conditions = rabbitmq.call(f"get,{plant_id},")
     except ConnectionBlockedTimeout:
         return abort(500, "Timeout occured")
     except Exception as e:

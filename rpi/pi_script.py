@@ -1,16 +1,28 @@
 import socket
 import RPi.GPIO as GPIO
+from controller import Controller
+
+controller = Controller()
 
 
 def handle_message(message: str):
-    command, value, plant_id = message.split(",")
-    if command == 'brightness':
-        response = set_led(plant_id, value)
-    elif command == 'temperature':
-        response = set_temp(plant_id, value)
+    global controller
+    command, plant_id, value = message.split(",")
+    if command == 'get':
+        response = controller.get_current_conditions(plant_id)
+    elif command == 'temp':
+        response = controller.set_temp(plant_id, value)
+    elif command == 'wavelength':
+        response = controller.set_wavelength(plant_id, value)
+    elif command == 'brightness':
+        response = controller.set_brightness(plant_id, value)
     else:
         response = 'Unexpected request'
     return response
+
+
+def get_current_conditions(plant_id):
+    pass
 
 
 def set_led(plant_id: int, brightness: int) -> str:
