@@ -1,5 +1,11 @@
+import os
+
 import pika
 import uuid
+from dotenv import load_dotenv
+
+load_dotenv()
+MAX_TIMEOUT = os.environ.get("MAX_TIMEOUT", 10)
 
 
 class RabbitMQ:
@@ -35,12 +41,12 @@ class RabbitMQ:
         if self.corr_id == props.correlation_id:
             self.response = body
 
-    def call(self, message: str):
+    def call(self, queue: str, message: str):
         self.response = None
         self.corr_id = str(uuid.uuid4())
         self.channel.basic_publish(
             exchange='',
-            routing_key='rpc_queue',
+            routing_key=queue,
             properties=pika.BasicProperties(
                 reply_to=self.callback_queue,
                 correlation_id=self.corr_id,

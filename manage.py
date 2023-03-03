@@ -1,5 +1,5 @@
 import os
-from webapp import db, create_app, migrate
+from webapp import db, create_app, migrate, rabbitmq
 from webapp.api.models import Plant
 
 
@@ -9,4 +9,4 @@ app = create_app('config.%sConfig' % env.capitalize())
 
 @app.shell_context_processor
 def make_shell_context():
-    return dict(app=app, db=db, Plant=Plant, migrate=migrate)
+    return dict(app=app, db=db, Plant=Plant, migrate=migrate, rabbitmq=rabbitmq)

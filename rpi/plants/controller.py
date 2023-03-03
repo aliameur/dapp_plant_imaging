@@ -1,3 +1,6 @@
+import RPi.GPIO as GPIO
+
+
 class Controller:
 
     def __init__(self):

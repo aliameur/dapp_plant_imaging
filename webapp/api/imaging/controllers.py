@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, abort
+from ... import rabbitmq
 
 imaging_bp = Blueprint('imaging', __name__, url_prefix='/imaging')
 
@@ -26,6 +27,7 @@ def control():
 
     # send command to raspberry pi using RabbitMQ
     # e.g. send(direction, position)
+    rabbitmq.call()
 
 
 @imaging_bp.route('/sequence/<int:plant_id>')
