@@ -5,7 +5,6 @@ from ... import rabbitmq
 from pika.exceptions import ConnectionBlockedTimeout
 
 plants_bp = Blueprint('plants', __name__, url_prefix='/plants')
-# TODO finish docstrings and documentation on postman
 # TODO write RPI script for controlling of led and temperature
 # TODO write fetch conditions request error handling
 # TODO finish docstrings and documentation on postman
@@ -17,10 +16,10 @@ def get_plant(plant_id):
     Get all attributes and ideal conditions for a single plant by querying it using its unique plant ID.
 
     Usage:
-    Send a GET request to /plants/<int:plant_id> endpoint.
+        Send a GET request to /plants/<int:plant_id> endpoint.
 
     Raises:
-    404 Error - If the plant with the specified ID does not exist in the database.
+        404 Error - If the plant with the specified ID does not exist in the database.
 
     :return: A JSON object containing the plant's name, pins, temperature, wavelength, and brightness.
     """
@@ -35,14 +34,15 @@ def get_plant(plant_id):
 def get_plants():
     """
     Get the latest available conditions for multiple plants (temperature, wavelength, brightness, name, and pins)
-    queried by a list of plant ids. If no plant ids are given, returns all plants.
+    queried by a list of plant IDs. If no plant IDs are given, returns all plants.
 
-    Usage: Send a GET request to /plants/ endpoint. If you want to retrieve data for specific plants only, pass
-    their ids as comma-separated values in the `plant_ids` query parameter, which will return all plants with matching
-    ids. If no `plant_ids` parameter is passed, all available plants will be returned.
+    Usage:
+        Send a GET request to /plants/ endpoint. If you want to retrieve data for specific plants only, pass their IDs
+        as comma-separated values in the `plant_ids` query parameter, which will return all plants with matching IDs.
+        If no `plant_ids` parameter is passed, all available plants will be returned.
 
     Raises:
-    404 Error - If the plants with the specified IDs does not exist in the database.
+        404 Error - If the plants with the specified IDs does not exist in the database.
 
     :return: A JSON response containing the latest conditions for the requested plants.
     """
@@ -69,13 +69,14 @@ def edit_plant(plant_id):
     """
     Update attributes of a single plant by using plant id.
 
-    Usage: Send a PATCH request to /plants/<plant_id> endpoint where <plant_id> is the id of the plant you want to edit.
-    The request body should contain a JSON object with the new attributes for the plant. Any attributes not specified in
-    the JSON object will remain unchanged.
+    Usage:
+        Send a PATCH request to /plants/<plant_id> endpoint where <plant_id> is the id of the plant you want to edit.
+        The request body should contain a JSON object with the new attributes for the plant. Any attributes not
+        specified in the JSON object will remain unchanged.
 
     Raises:
-    404 Error - If the plant with the specified ID does not exist in the database.
-    500 Error - If an error occurs while editing the plant
+        404 Error - If the plant with the specified ID does not exist in the database.
+        500 Error - If an error occurs while editing the plant
 
     :return: A JSON response indicating the success of the edit operation.
     """
@@ -106,13 +107,14 @@ def new_plant():
     is to be added, all attributes and ideal conditions except for ``name`` must be specified, since the name will be
     automatically generated if omitted. For multiple plants, send a list of plant conditions in the request body.
 
-    Usage: Send a POST request to /plants/ endpoint with a JSON body containing the attributes and ideal conditions for
-    the plant(s) to be added. To add a single plant, specify the attributes directly in the JSON body. To add multiple
-    plants, send a list of plant attributes. Plant attributes include: name, temperature sensor pin, heating element
-    pin, wavelength, temperature, and brightness.
+    Usage:
+        Send a POST request to /plants/ endpoint with a JSON body containing the attributes and ideal conditions for the
+        plant(s) to be added. To add a single plant, specify the attributes directly in the JSON body. To add multiple
+        plants, send a list of plant attributes. Plant attributes include: name, temperature sensor pin, heating element
+        pin, wavelength, temperature, and brightness.
 
     Raises:
-    500 Error - If the request is not valid, or an error occurs while adding the new plant(s) to the database.
+        500 Error - If the request is not valid, or an error occurs while adding the new plant(s) to the database.
 
     :return: A JSON response indicating the success or failure of the request.
     """
@@ -153,11 +155,12 @@ def delete_plant(plant_id):
     """
     Delete a single plant by its unique plant ID.
 
-    Usage: To delete a single plant, send a DELETE request to /plants/<int:plant_id>. The plant's unique ID must be
-    included in the URL as a parameter. For example, "/plants/2" will delete the plant with ID 2.
+    Usage:
+        To delete a single plant, send a DELETE request to /plants/<int:plant_id>. The plant's unique ID must be
+        included in the URL as a parameter. For example, "/plants/2" will delete the plant with ID 2.
 
     Raises:
-    404 Error - If the plant with the specified ID does not exist in the database.
+        404 Error - If the plant with the specified ID does not exist in the database.
 
     :return: A JSON response containing a message indicating that the plant was successfully deleted.
     """
@@ -173,13 +176,27 @@ def delete_plant(plant_id):
         abort(500, 'An error occurred while deleting the plant')
 
 
-@plants_bp.route('/<int:plant_id>/conditions')
-def conditions(plant_id):
+@plants_bp.route('/<int:plant_id>/current')
+def current_conditions(plant_id):
+    """
+    Get the current conditions of a single plant identified by its ID.
+
+    Usage:
+        Send a GET request to the endpoint to retrieve the current conditions of a single plant identified by its ID in
+        the url. The response will be a JSON object containing the current conditions of the plant.
+
+    Raises:
+        404 - If the plant is not found.
+        500 - If there is a timeout or other failure during communication with the Raspberry Pi.
+
+    :returns: A JSON object containing the current conditions of the plant.
+    """
     plant = Plant.query.get(plant_id)
     if not plant:
         return abort(404, "Plant not found")
 
     try:  # TODO add error handling if no communication (bad connection) or other failure
+        # talk to the raspberry pi using a RabbitMQ broker and returns current conditions
         plant_conditions = rabbitmq.call(f"get,{plant_id}")
     except ConnectionBlockedTimeout:
         return abort(500, "Timeout occured")
@@ -187,12 +204,4 @@ def conditions(plant_id):
         return abort(500, e)
     return jsonify(plant_conditions), 200
 
-
-# Example usage: set LED brightness to 50%
-# ip_address = '192.168.1.100'
-# command = 'led'
-# arg = 50
-# send_command(ip_address, command, arg)
-
-# talk to rpi and get current conditions
 # TODO storage of information updated onto database, sql or mongodb?
