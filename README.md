@@ -15,6 +15,7 @@ the devices and accessing the data they generate.
 - Raspberry Pi boards
 - JavaScript [not yet]
 - HTML/CSS
+- Canon EDSDK
 
 ## Installation
 
@@ -31,20 +32,18 @@ webapp/
 ├── __init__.py  
 ├── main/  
 ├── api/  
-│ &nbsp; &nbsp; &nbsp; &nbsp;├── plant/  
+│ &nbsp; &nbsp; &nbsp; &nbsp;├── plants/  
 │ &nbsp; &nbsp; &nbsp; &nbsp;├── imaging/  
-│ &nbsp; &nbsp; &nbsp; &nbsp;├── data/  
-│ &nbsp; &nbsp; &nbsp; &nbsp;└── rabbitmq/  
+│ &nbsp; &nbsp; &nbsp; &nbsp;├── data/
 └── dashboard/
 
 ## Current TODOs
 
-- Refactor to new structure
-- Tidy up plant endpoints and finalize documentation
-- Finalize and test rabbitmq with raspberry pi board
+- Test rabbitmq with raspberry pi board
 - Write imaging endpoints
 - Write data endpoints
 - Get requirements for dashboard
+- Integrate Canon EDSDK
 
 ## Limitations and Known Issues
 
