@@ -6,10 +6,11 @@ dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
 @dashboard_bp.route('/')
 def home():
-    plants = requests.get(url_for("api.plant.get_plants", _external=True))
+    plants = requests.get(url_for("api.plants.get_plants", _external=True))
     if plants.status_code == 404:
         plants = []
     else:
+        print(plants)
         plants = plants.json()
     # TODO dynamically update local storage, user login, and rpi status
     # TODO design rest of templates, and recheck page layout

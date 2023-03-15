@@ -1,8 +1,8 @@
 """initial migration
 
-Revision ID: acaa370cb12b
+Revision ID: fd6c61d61052
 Revises: 
-Create Date: 2023-02-21 01:00:56.183011
+Create Date: 2023-03-15 13:05:37.110610
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'acaa370cb12b'
+revision = 'fd6c61d61052'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,15 +26,12 @@ def upgrade():
     sa.Column('brightness', sa.Integer(), nullable=False),
     sa.Column('temperature_sensor_pin', sa.Integer(), nullable=False),
     sa.Column('heating_element_pin', sa.Integer(), nullable=False),
-    sa.Column('led_red_pin', sa.Integer(), nullable=False),
-    sa.Column('led_green_pin', sa.Integer(), nullable=False),
-    sa.Column('led_blue_pin', sa.Integer(), nullable=False),
+    sa.Column('led_pin', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('heating_element_pin'),
-    sa.UniqueConstraint('led_blue_pin'),
-    sa.UniqueConstraint('led_green_pin'),
-    sa.UniqueConstraint('led_red_pin'),
-    sa.UniqueConstraint('temperature_sensor_pin')
+    sa.UniqueConstraint('led_pin'),
+    sa.UniqueConstraint('temperature_sensor_pin'),
+    sa.UniqueConstraint('temperature_sensor_pin', 'heating_element_pin', name='unique_plant')
     )
     # ### end Alembic commands ###
 

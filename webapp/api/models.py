@@ -10,10 +10,10 @@ class Plant(db.Model):
     temperature = db.Column(db.Float, nullable=False)
     wavelength = db.Column(db.Integer, nullable=False)
     brightness = db.Column(db.Integer, nullable=False)
-    led = db.Column(db.Integer, nullable=False, unique=True)
 
     temperature_sensor_pin = db.Column(db.Integer, nullable=False, unique=True)
     heating_element_pin = db.Column(db.Integer, nullable=False, unique=True)
+    led_pin = db.Column(db.Integer, nullable=False, unique=True)
 
     __table_args__ = (
         db.UniqueConstraint('temperature_sensor_pin', 'heating_element_pin',
