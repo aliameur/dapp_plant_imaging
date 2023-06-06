@@ -7,7 +7,7 @@ controller = Controller()
 
 
 def handle_message(message: str):
-    command, plant_id, value = message.split(",")
+    command, plant_id, value = message.split(",", maxsplit=2)
     if command == 'get':
         response = controller.get_current_conditions(plant_id)
     elif command == 'temperature':

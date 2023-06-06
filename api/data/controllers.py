@@ -3,6 +3,7 @@ from flask_restful import Resource
 from .models import Plant, create_plant, History
 from datetime import datetime
 from fireo.utils import utils
+from .. import rabbitmq
 
 # TODO add error handling with wrong types
 
@@ -32,6 +33,12 @@ class PlantResource(Resource):
                 led_pin=data.get('led_pin')
             )
             plant.save()
+
+            value = plant_dict_formatter(plant.to_dict())
+            message = f"new,{plant.id},{value}"
+            response = rabbitmq.call("plant", message).decode()
+            print(response)  # TODO add error handling on return
+
             return {"message": f"added plant {plant.id}"}, 201
         except ValueError as e:
             return {"error": e.__str__()}, 400
@@ -40,6 +47,11 @@ class PlantResource(Resource):
         plant = Plant.collection.get(plant_id)
         if plant:
             Plant.collection.delete(id=plant_id)
+
+            message = f"delete,{plant.id},"
+            response = rabbitmq.call("plant", message).decode()
+            print(response)  # TODO add error handling on return
+
             return '', 204
         else:
             return {"error": "Plant not found"}, 404
@@ -51,7 +63,6 @@ class PlantResource(Resource):
                 return {"error": "Plant not found"}, 404
 
             data = request.get_json()
-
             # Check if at least one correct field is present
             expected_fields = {'name', 'temperature_sensor_pin', 'heating_element_pin', 'led_pin'}
             if not any(field in data for field in expected_fields):
@@ -68,6 +79,12 @@ class PlantResource(Resource):
                 plant.led_pin = data['led_pin']
 
             plant.update()
+
+            value = plant_dict_formatter(plant.to_dict())
+            message = f"new,{plant.id},{value}"
+            response = rabbitmq.call("plant", message).decode()
+            print(response)  # TODO add error handling on return
+
             return {"message": f"Updated plant {plant_id}."}
         except ValueError as e:
             return {"error": e.__str__()}, 400
@@ -90,16 +107,8 @@ class PlantResource(Resource):
             plant.heating_element_pin = data['heating_element_pin']
             plant.led_pin = data['led_pin']
 
-            # Validate and save the updated plant
-            create_plant(
-                name=plant.name,
-                temperature_sensor_pin=plant.temperature_sensor_pin,
-                heating_element_pin=plant.heating_element_pin,
-                led_pin=plant.led_pin
-            )
-
+            plant.update()
             return {"message": f"Updated plant {plant_id}."}
-
         except ValueError as e:
             return {"error": e.__str__()}, 400
 
@@ -157,3 +166,12 @@ class HistoryResource(Resource):
 # fix http status codes
 # documentation for all
 # write tests
+
+def plant_dict_formatter(plant_dict: dict) -> dict:
+    # Create a new dictionary with only pin information
+    result = {
+        'temperature_sensor_pin': plant_dict['temperature_sensor_pin'],
+        'heating_element_pin': plant_dict['heating_element_pin'],
+        'led_pin': plant_dict['led_pin']
+    }
+    return result
