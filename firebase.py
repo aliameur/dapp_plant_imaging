@@ -12,7 +12,6 @@ class Firebase:
 
     @staticmethod
     def init_app(app):
-        # TODO fix json config file
         cred = credentials.Certificate('firebase-config.json')
         firebase_app = initialize_app(cred)
         app.config['FIRESTORE'] = firestore.client(app=firebase_app)
