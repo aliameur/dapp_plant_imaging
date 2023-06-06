@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, abort
-from ... import rabbitmq
+from .. import rabbitmq
 
 imaging_bp = Blueprint('imaging', __name__, url_prefix='/imaging')
 

@@ -1,5 +1,4 @@
 import os
-
 import pika
 import uuid
 from dotenv import load_dotenv
@@ -34,14 +33,14 @@ class RabbitMQ:
             on_message_callback=self.on_response,
             auto_ack=True)
 
-        self.response = None
+        self.response: bytes | None = None
         self.corr_id = None
 
     def on_response(self, ch, method, props, body):
         if self.corr_id == props.correlation_id:
             self.response = body
 
-    def call(self, queue: str, message: str):
+    def call(self, queue: str, message: str) -> bytes | None:
         self.response = None
         self.corr_id = str(uuid.uuid4())
         self.channel.basic_publish(

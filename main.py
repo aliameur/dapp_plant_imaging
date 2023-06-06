@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from webapp import create_app
+from api import create_app
 
 load_dotenv()
 env = os.environ.get('WEBAPP_ENV', 'dev')

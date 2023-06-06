@@ -1,18 +1,18 @@
 from flask import Flask
-from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from rabbitmq import RabbitMQ
+from firebase import Firebase
 
-bootstrap = Bootstrap5()
 db = SQLAlchemy()
 migrate = Migrate()
 rabbitmq = RabbitMQ()
+firebase = Firebase()
 
 
 def create_app(object_name):
     """
-    An flask application factory, as explained here:
+    A flask application factory, as explained here:
     http://flask.pocoo.org/docs/patterns/appfactories/
 
     Arguments:
@@ -22,19 +22,21 @@ def create_app(object_name):
     app = Flask(__name__)
     app.config.from_object(object_name)
 
-    bootstrap.init_app(app)  # will be required for dashboard setup TODO add option to remove if only api used
     db.init_app(app)
     migrate.init_app(app, db)
     rabbitmq.init_app(app)
+    firebase.init_app(app)
 
-    from .api import create_module as api_create_module
-    from .main import create_module as main_create_module
+    from .plants import create_module as plants_create_module
+    from .imaging import create_module as imaging_create_module
+    from .data import create_module as data_create_module
+    from .auth import create_module as auth_create_module
 
-    api_create_module(app)
-    main_create_module(app)
-
-    if app.config.get("DASHBOARD_PRESENT"):
-        from .dashboard import create_module as dashboard_create_module
-        dashboard_create_module(app)
+    plants_create_module(app)
+    imaging_create_module(app)
+    data_create_module(app)
+    auth_create_module(app)
 
     return app
+
+    # TODO add correct http status codes throughout

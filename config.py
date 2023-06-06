@@ -1,7 +1,5 @@
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -10,6 +8,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'database.db')
     TEMPERATURE_BOUNDS = (0, 60)
     WAVELENGTH_BOUNDS = (300, 800)
+    BRIGHTNESS_BOUNDS = (0, 100)
 
     RABBIT_USER = "rabbitmq"
     RABBIT_PASS = "rabbitmq"
@@ -25,4 +24,3 @@ class DevConfig(Config):
     DEBUG = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     PLANT_IP_ADDRESS = os.environ["IP_ADDRESS"]
-    DASHBOARD_PRESENT = True

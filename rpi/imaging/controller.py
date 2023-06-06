@@ -1,6 +1,6 @@
 # import RPi.GPIO as GPIO
 import time
-import gphoto2 as gp
+# import gphoto2 as gp
 import os
 
 # all cameras capable of MTP, PTP or PictBridge are supported without needing to be specifically listed here.
@@ -24,7 +24,7 @@ class Controller:
         self.current_pos_r = 0
         self.current_angle_theta = 0
 
-        self.camera = gp.Camera()
+        # self.camera = gp.Camera()
         self._init_camera()
 
     def _set_motor_r(self):
@@ -38,11 +38,12 @@ class Controller:
             GPIO.output(pin, 0)
 
     def _init_camera(self):
-        cameras = list(self.camera.autodetect())
-        if not cameras:
-            pass
-        else:
-            self.camera.init()
+        pass
+        # cameras = list(self.camera.autodetect())
+        # if not cameras:
+        #     pass
+        # else:
+        #     self.camera.init()
 
     def control_r(self, length: float):
         pass
