@@ -1,5 +1,5 @@
 from fireo.models import Model, NestedModel
-from fireo.fields import TextField, NumberField, DateTime
+from fireo.fields import TextField, NumberField, DateTime, ListField
 
 
 class History(Model):
@@ -9,12 +9,21 @@ class History(Model):
     date = DateTime()
 
 
+class Images(Model):
+    date = DateTime()
+    type = TextField()
+    raw_images = ListField()
+    laplacian_images = ListField()
+    focus_stacked = TextField()
+
+
 class Plant(Model):
     name = TextField()
     temperature_sensor_pin = NumberField()
     heating_element_pin = NumberField()
     led_pin = NumberField()
     history = NestedModel(History)
+    images = NestedModel(Images)
 
     class Meta:
         missing_field = 'raise_error'

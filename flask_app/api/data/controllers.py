@@ -1,6 +1,6 @@
 from flask import request, Blueprint
 from flask_restful import Resource
-from flask_app.api.models import Plant, create_plant, History
+from flask_app.api.models import Plant, create_plant, History, Images
 from datetime import datetime
 from fireo.utils import utils
 from .. import rabbitmq
@@ -111,6 +111,16 @@ class PlantResource(Resource):
             return {"error": e.__str__()}, 400
 
 
+def plant_dict_formatter(plant_dict: dict) -> dict:
+    # Create a new dictionary with only pin information
+    result = {
+        'temperature_sensor_pin': plant_dict['temperature_sensor_pin'],
+        'heating_element_pin': plant_dict['heating_element_pin'],
+        'led_pin': plant_dict['led_pin']
+    }
+    return result
+
+
 class HistoryResource(Resource):
 
     def get(self, plant_id):
@@ -156,11 +166,26 @@ class HistoryResource(Resource):
         return "", 204
 
 
-def plant_dict_formatter(plant_dict: dict) -> dict:
-    # Create a new dictionary with only pin information
-    result = {
-        'temperature_sensor_pin': plant_dict['temperature_sensor_pin'],
-        'heating_element_pin': plant_dict['heating_element_pin'],
-        'led_pin': plant_dict['led_pin']
-    }
-    return result
+class ImagesResource(Resource):
+    # TODO continue images endpoint
+
+    def get(self, plant_id: str, images_id: str = None):
+        plant = Plant.collection.get(plant_id)
+        if not plant:
+            return {"error": f"Plant {plant_id} doesn't exist."}, 404
+
+        # specific image set
+        if images_id:
+            images_key = utils.get_key("images", images_id, plant.key)
+            images = Images.collection.get(images_key)
+            if images:
+                return images.to_dict()
+            else:
+                return {"error": f"Images set with key {images_key} not found."}, 404
+
+        # all image sets
+        else:
+            images = plant.images
+            if images:
+                return [i.to_dict() for i in images]
+            return []
