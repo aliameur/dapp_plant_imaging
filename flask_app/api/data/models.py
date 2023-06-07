@@ -22,9 +22,6 @@ class Plant(Model):
         collection_name = "plants"
 
     def validate_pins(self):
-        print("temp", self.temperature_sensor_pin)
-        print("heat", self.heating_element_pin)
-        print("led", self.led_pin)
         if len({self.temperature_sensor_pin, self.heating_element_pin, self.led_pin}) != 3:
             raise ValueError("Pins must be unique")
 

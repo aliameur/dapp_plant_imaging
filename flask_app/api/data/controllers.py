@@ -5,8 +5,6 @@ from datetime import datetime
 from fireo.utils import utils
 from .. import rabbitmq
 
-# TODO add error handling with wrong types
-
 data_bp = Blueprint('data', __name__, url_prefix='/data')
 
 
@@ -157,15 +155,6 @@ class HistoryResource(Resource):
         History.collection.delete(history_key)
         return "", 204
 
-
-# TODO finish history resource and history model DONE
-# make plant rpi device receive commands correctly TODAY
-# do the same for imaging device
-# push to github and host on vercel
-# figure out gphoto stuff
-# fix http status codes
-# documentation for all
-# write tests
 
 def plant_dict_formatter(plant_dict: dict) -> dict:
     # Create a new dictionary with only pin information

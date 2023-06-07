@@ -1,7 +1,6 @@
 import firebase_admin.auth
 from flask import current_app
 from firebase_admin import credentials, firestore, auth, initialize_app
-import fireo
 
 
 class Firebase:
@@ -12,7 +11,7 @@ class Firebase:
 
     @staticmethod
     def init_app(app):
-        cred = credentials.Certificate('firebase-config.json')
+        cred = credentials.Certificate('flask_app/firebase-config.json')
         firebase_app = initialize_app(cred)
         app.config['FIRESTORE'] = firestore.client(app=firebase_app)
         app.config['AUTH'] = auth._get_client(app=firebase_app)

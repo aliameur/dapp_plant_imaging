@@ -1,11 +1,7 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from rabbitmq import RabbitMQ
-from firebase import Firebase
+from .rabbitmq import RabbitMQ
+from .firebase import Firebase
 
-db = SQLAlchemy()
-migrate = Migrate()
 rabbitmq = RabbitMQ()
 firebase = Firebase()
 
@@ -22,8 +18,6 @@ def create_app(object_name):
     app = Flask(__name__)
     app.config.from_object(object_name)
 
-    db.init_app(app)
-    migrate.init_app(app, db)
     rabbitmq.init_app(app)
     firebase.init_app(app)
 
@@ -38,5 +32,3 @@ def create_app(object_name):
     auth_create_module(app)
 
     return app
-
-    # TODO add correct http status codes throughout

@@ -6,11 +6,6 @@ from flask_restful import Resource
 plants_bp = Blueprint('plants', __name__, url_prefix='/plants')
 
 
-# TODO write RPI script for controlling of led and temperature
-# TODO finish docstrings and documentation on postman
-# TODO fix rpi board communication and error handling if communication goes bad
-
-
 class ConditionResource(Resource):
 
     def get(self, plant_id=None):
@@ -40,7 +35,7 @@ class ConditionResource(Resource):
                 ])
 
                 for key, val in data.items():
-                    message = f"{plant_id},{key},{val}"
+                    message = f"{key},{plant_id},{val}"
                     response = rabbitmq.call("plant", message)
                     if response == "plant does not exist":
                         return {"error": "Plant requested does not exist"}, 404
