@@ -1,0 +1,51 @@
+.small-card {
+    width: 200px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.small-card {
+ width: fit-content;
+ border-radius: 1.5rem;
+ background: white;
+ position: relative;
+ padding: 1rem;
+ border: 1px solid rgba(0, 0, 0, 0);
+ transition: 0.5s ease-out;
+ overflow: visible;
+}
+
+.small-card-details {
+ color: black;
+ height: 100%;
+ gap: .5em;
+ display: grid;
+ place-content: center;
+}
+
+.small-card-button {
+ transform: translate(-65%, 50%);
+ width: 60%;
+ border-radius: 0.75rem;
+ border: none;
+ background-color: black;
+ color: #fff;
+ font-family: 'Soin Sans Neue';
+ font-weight: 400;
+ padding: .5rem .1rem;
+ position: absolute;
+ left: 50%;
+ bottom: 0;
+ opacity: 0;
+ transition: 0.3s ease-out;
+}
+
+/*Hover*/
+.small-card:hover {
+ border-color: rgba(0, 0, 0, 1);
+ box-shadow: 0 4px 18px 0 rgba(0, 0, 0, 0.25);
+}
+
+.small-card:hover .small-card-button {
+ transform: translate(-50%, 50%);
+ opacity: 1;
+}
