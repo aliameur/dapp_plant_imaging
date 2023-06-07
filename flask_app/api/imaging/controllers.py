@@ -51,6 +51,7 @@ def sequence(plant_id):
 
 
 def validate_json(json: dict):
+    # TODO update validation function as we add parameters
     if "n_images" in json and isinstance(json["n_images"], int):
         return {"n_images": json["n_images"]}
     else:
