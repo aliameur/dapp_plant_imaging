@@ -1,9 +1,8 @@
 from flask import Flask
 from .rabbitmq import RabbitMQ
-from .firebase import Firebase
+from firebase_admin import initialize_app
 
 rabbitmq = RabbitMQ()
-firebase = Firebase()
 
 
 def create_app(object_name):
@@ -19,7 +18,8 @@ def create_app(object_name):
     app.config.from_object(object_name)
 
     rabbitmq.init_app(app)
-    firebase.init_app(app)
+    initialize_app()
+
 
     from .plants import create_module as plants_create_module
     from .imaging import create_module as imaging_create_module

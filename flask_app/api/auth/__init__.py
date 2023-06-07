@@ -1,6 +1,5 @@
 from flask import request, jsonify
-import firebase_admin
-from .. import firebase
+from firebase_admin import auth
 
 
 def create_module(app, **kwargs):
@@ -12,9 +11,9 @@ def create_module(app, **kwargs):
             return jsonify({"error": "Missing authentication."}), 401
 
         try:
+            pass
             token = auth_header.split(" ")[1]
-
-            decoded_token = firebase.auth().verify_id_token(token)
+            decoded_token = auth.verify_id_token(token)
             uid = decoded_token['uid']
-        except firebase_admin.auth.InvalidIdTokenError:
+        except auth.InvalidIdTokenError:
             return jsonify({"error": "Token is invalid."}), 401

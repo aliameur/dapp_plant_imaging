@@ -1,6 +1,6 @@
 from flask import request, Blueprint
 from flask_restful import Resource
-from .models import Plant, create_plant, History
+from flask_app.api.models import Plant, create_plant, History
 from datetime import datetime
 from fireo.utils import utils
 from .. import rabbitmq

@@ -10,7 +10,7 @@ app = create_app(f'config.{env.capitalize()}Config')
 if __name__ == '__main__':
     app.run()
 
-# TODO add error handling with wrong types
+# TODO add error handling with wrong types (later, minor change)
 # TODO fix imaging endpoints and process requests properly on imaging rpi
 # TODO figure out gphoto stuff
 # TODO process requests properly on plant rpi
