@@ -6,32 +6,6 @@ from ..models import Plant
 imaging_bp = Blueprint('imaging', __name__, url_prefix='/imaging')
 
 
-@imaging_bp.route("/")
-def home():
-    return jsonify({"message": "imaging endpoint"})
-
-
-# TODO swap plants
-# TODO manual mode, position camera correctly
-# TODO make cannon integration modular
-
-
-@imaging_bp.route('/control')
-def control():
-    direction = request.args.get("direction")
-    position = request.args.get("position")
-    if not direction:
-        abort(400, "No direction provided.")
-    if not position:
-        abort(400, "No position provided.")
-    if direction not in ("r", "z", "theta"):
-        abort(404, "Direction does not exist, please use 'r', 'z', or 'theta'.")
-
-    # send command to raspberry pi using RabbitMQ
-    # e.g. send(direction, position)
-    rabbitmq.call()
-
-
 @imaging_bp.route('/sequence/<string:plant_id>')
 def sequence(plant_id):
     plant = Plant.collection.get(plant_id)

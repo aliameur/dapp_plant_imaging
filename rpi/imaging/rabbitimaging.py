@@ -3,10 +3,10 @@ import pika
 
 class RabbitImaging:
 
-    def __init__(self):
+    def __init__(self, host):
         self.username = "rabbitmq"
         self.password = "rabbitmq"
-        self.host = "localhost"
+        self.host = host
         self.port = 5672
 
         self._init_rmq()

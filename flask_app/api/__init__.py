@@ -20,7 +20,6 @@ def create_app(object_name):
     rabbitmq.init_app(app)
     initialize_app()
 
-
     from .plants import create_module as plants_create_module
     from .imaging import create_module as imaging_create_module
     from .data import create_module as data_create_module

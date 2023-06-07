@@ -2,7 +2,7 @@ import pika
 from rabbitimaging import RabbitImaging
 from controller import Controller
 
-rmq = RabbitImaging()
+rmq = RabbitImaging(host="localhost")
 controller = Controller()
 
 
