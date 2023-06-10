@@ -20,3 +20,8 @@ if __name__ == '__main__':
 # TODO write documentation with postman + other service for rest of documentation
 # TODO write unit + coverage tests
 # TODO finish docstrings and documentation on postman
+
+# TODO write plant rpi code 30 min
+# TODO handle responses sent back 30 min TODAY 1 hr
+# TODO write connection to the rabbitmq code correctly on rpi
+# TODO finish up the dashboard
