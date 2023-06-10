@@ -8,7 +8,7 @@ app = create_app(f'config.{env.capitalize()}Config')
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5001, debug=True)
 
 # TODO add error handling with wrong types (later, minor change)
 # TODO fix imaging endpoints and process requests properly on imaging rpi

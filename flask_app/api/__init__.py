@@ -1,8 +1,10 @@
 from flask import Flask
+from flask_cors import CORS
 from .rabbitmq import RabbitMQ
 from firebase_admin import initialize_app
 
 rabbitmq = RabbitMQ()
+cors = CORS()
 
 
 def create_app(object_name):
@@ -16,8 +18,10 @@ def create_app(object_name):
     """
     app = Flask(__name__)
     app.config.from_object(object_name)
+    app.url_map.strict_slashes = False
 
     rabbitmq.init_app(app)
+    cors.init_app(app)
     initialize_app()
 
     from .plants import create_module as plants_create_module

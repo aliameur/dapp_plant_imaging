@@ -3,14 +3,17 @@ services:
   web:
     build: flask_app/
     ports:
-      - "5001:5000"
+      - "5001:5001"
     restart: on-failure
     depends_on:
       - rmq
     environment:
-      - WEBAPP_ENV=prod
+      - WEBAPP_ENV=env
+      - GOOGLE_APPLICATION_CREDENTIALS=firebase-config.json
+    volumes:
+      - ./flask_app:/flask_app
   rmq:
-    build: ./rabbitmq/
+    build: rabbitmq/
     ports:
       - "15672:15672"
       - "5672:5672"

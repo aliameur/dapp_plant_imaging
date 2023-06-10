@@ -1,8 +1,9 @@
-# import RPi.GPIO as GPIO
-# from simple_pid import PID
+import RPi.GPIO as GPIO
+from simple_pid import PID
 import ast
 import threading
 import time
+import neopixel
 
 
 class Controller:
@@ -16,7 +17,6 @@ class Controller:
             "wavelength": 700,
             "brightness": 80
         }
-
 
     def init_plants(self, plant_dict: str) -> str:
         try:

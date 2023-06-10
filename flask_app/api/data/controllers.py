@@ -1,6 +1,6 @@
 from flask import request, Blueprint
 from flask_restful import Resource
-from flask_app.api.models import Plant, create_plant, History, Images
+from ..models import Plant, create_plant, History, Images
 from datetime import datetime
 from fireo.utils import utils
 from .. import rabbitmq
@@ -26,18 +26,24 @@ class PlantResource(Resource):
             data = request.get_json()
             plant = create_plant(
                 name=data.get('name'),
-                temperature_sensor_pin=data.get('temperature_sensor_pin'),
                 heating_element_pin=data.get('heating_element_pin'),
-                led_pin=data.get('led_pin')
+                multiplexer_channel=data.get('multiplexer_channel'),
+                led_start_number=data.get('led_start_number'),
+                ideal_temperature=data.get('ideal_temperature'),
+                ideal_wavelength=data.get('ideal_wavelength'),
+                ideal_brightness=data.get('ideal_brightness'),
             )
             plant.save()
 
             value = plant_dict_formatter(plant.to_dict())
             message = f"new,{plant.id},{value}"
-            response = rabbitmq.call("plant", message).decode()
-            print(response)  # TODO add error handling on return
+            try:
+                response = rabbitmq.call("plant", message).decode()
+                print(response)  # TODO add error handling on return
+            except AttributeError:
+                return {"message": f"Added plant {plant.id}, will update Raspberry Pi on launch."}, 201
 
-            return {"message": f"added plant {plant.id}"}, 201
+            return {"message": f"Added plant {plant.id}."}, 201
         except ValueError as e:
             return {"error": e.__str__()}, 400
 
@@ -47,18 +53,21 @@ class PlantResource(Resource):
             Plant.collection.delete(id=plant_id)
 
             message = f"delete,{plant.id},"
-            response = rabbitmq.call("plant", message).decode()
-            print(response)  # TODO add error handling on return
+            try:
+                response = rabbitmq.call("plant", message).decode()
+                print(response)  # TODO add error handling on return
+            except AttributeError:
+                return {"message": f"Plant deleted, will update Raspberry Pi on launch."}, 204
 
             return '', 204
         else:
-            return {"error": "Plant not found"}, 404
+            return {"error": "Plant not found."}, 404
 
     def patch(self, plant_id):
         try:
             plant = Plant.collection.get(plant_id)
             if not plant:
-                return {"error": "Plant not found"}, 404
+                return {"error": "Plant not found."}, 404
 
             data = request.get_json()
             # Check if at least one correct field is present
@@ -80,8 +89,11 @@ class PlantResource(Resource):
 
             value = plant_dict_formatter(plant.to_dict())
             message = f"new,{plant.id},{value}"
-            response = rabbitmq.call("plant", message).decode()
-            print(response)  # TODO add error handling on return
+            try:
+                response = rabbitmq.call("plant", message).decode()
+                print(response)  # TODO add error handling on return
+            except AttributeError:
+                return {"message": f"Updated plant {plant_id}, will update Raspberry Pi on launch."}
 
             return {"message": f"Updated plant {plant_id}."}
         except ValueError as e:
@@ -104,8 +116,16 @@ class PlantResource(Resource):
             plant.temperature_sensor_pin = data['temperature_sensor_pin']
             plant.heating_element_pin = data['heating_element_pin']
             plant.led_pin = data['led_pin']
-
             plant.update()
+
+            value = plant_dict_formatter(plant.to_dict())
+            message = f"new,{plant.id},{value}"
+            try:
+                response = rabbitmq.call("plant", message).decode()
+                print(response)  # TODO add error handling on return
+            except AttributeError:
+                return {"message": f"Updated plant {plant_id}, will update Raspberry Pi on launch."}
+
             return {"message": f"Updated plant {plant_id}."}
         except ValueError as e:
             return {"error": e.__str__()}, 400
