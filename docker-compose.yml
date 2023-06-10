@@ -8,7 +8,7 @@ services:
     depends_on:
       - rmq
     environment:
-      - WEBAPP_ENV=env
+      - WEBAPP_ENV=dev
       - GOOGLE_APPLICATION_CREDENTIALS=firebase-config.json
     volumes:
       - ./flask_app:/flask_app

@@ -7,6 +7,9 @@ class History(Model):
     temperature = NumberField()
     wavelength = NumberField()
     brightness = NumberField()
+    ideal_temperature = NumberField()
+    ideal_wavelength = NumberField()
+    ideal_brightness = NumberField()
     date = DateTime()
 
 

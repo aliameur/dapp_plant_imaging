@@ -35,7 +35,7 @@ class PlantResource(Resource):
             )
             plant.save()
 
-            value = plant_dict_formatter(plant.to_dict())
+            value = plant.to_dict()
             message = f"new,{plant.id},{value}"
             try:
                 response = rabbitmq.call("plant", message).decode()
@@ -87,7 +87,7 @@ class PlantResource(Resource):
 
             plant.update()
 
-            value = plant_dict_formatter(plant.to_dict())
+            value = plant.to_dict()
             message = f"new,{plant.id},{value}"
             try:
                 response = rabbitmq.call("plant", message).decode()
@@ -118,7 +118,7 @@ class PlantResource(Resource):
             plant.led_pin = data['led_pin']
             plant.update()
 
-            value = plant_dict_formatter(plant.to_dict())
+            value = plant.to_dict()
             message = f"new,{plant.id},{value}"
             try:
                 response = rabbitmq.call("plant", message).decode()
@@ -162,6 +162,9 @@ class HistoryResource(Resource):
             temperature=data.get('temperature'),
             wavelength=data.get('wavelength'),
             brightness=data.get('brightness'),
+            ideal_temperature=data.get('ideal_temperature'),
+            ideal_wavelength=data.get('ideal_wavelength'),
+            ideal_brightness=data.get('ideal_brightness'),
             date=datetime.fromisoformat(data.get('date')),
             parent=plant.key
         )
