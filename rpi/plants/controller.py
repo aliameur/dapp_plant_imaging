@@ -27,6 +27,8 @@ BRIGHTNESS_Kd = 0.05
 # TODO convert from temp in C to heater output, need to test
 # TODO check if control loop works correctly
 # TODO check if we can physically use pwm with relays, or will we need solid state relays
+# TODO check type casting on setting methods
+# TODO check new_plant method after all, and redo message handler to reflect current updates
 
 
 class Controller:
@@ -74,18 +76,15 @@ class Controller:
             return str(data)
 
     def set_wavelength(self, plant_id: str, wavelength: int):
-        pass
+        self.plants[plant_id]["ideal"]["wavelength"] = wavelength
 
     def set_brightness(self, plant_id: str, brightness: int):
-        pass
+        self.plants[plant_id]["ideal"]["brightness"] = brightness
+        self.plants[plant_id]["brightness_pid"].setpoint = brightness
 
     def set_temperature(self, plant_id: str, temp: float):
-        # Here you would update the setpoint of your PID controller
-        self.plants[plant_id]["pid"].setpoint = temp
-        # Then you would get the new control value and apply it to your heating element
-        control_value = self.plants[plant_id]["pid"](temp)
-        # TODO: GPIO call to control the heating element with the control_value
         self.plants[plant_id]["ideal"]["temperature"] = temp
+        self.plants[plant_id]["temperature_pid"].setpoint = temp
 
     def new_plant(self, plant_id: str, data: str) -> str:
         try:
