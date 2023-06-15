@@ -1,65 +1,32 @@
-import smbus2
+from adafruit_tca9548a import TCA9548A_Channel
+from functools import wraps
 
 
-I2C_BUS_NUMBER			= 1
-LM75_ADDRESS		 	= 0x48  #Default address if not supplied
+def retry_on_none(max_retries=3):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for _ in range(max_retries):
+                result = func(*args, **kwargs)
+                if result is not None:
+                    return result
+            return None
 
-LM75_TEMP_REGISTER 	 	= 0
-LM75_CONF_REGISTER 	 	= 1
-LM75_THYST_REGISTER  	= 2
-LM75_TOS_REGISTER 	 	= 3
+        return wrapper
 
-LM75_CONF_SHUTDOWN  	= 0
-LM75_CONF_OS_COMP_INT 	= 1
-LM75_CONF_OS_POL 	 	= 2
-LM75_CONF_OS_F_QUE 	 	= 3
+    return decorator
 
 
-class LM75(object):
-	def __init__(self, mode=LM75_CONF_OS_COMP_INT, i2c_address=LM75_ADDRESS,
-							 busnum=I2C_BUS_NUMBER):
-		self._mode = mode
-		self.i2c_address = i2c_address
-		self._bus = smbus2.SMBus(busnum)
+# @retry_on_none()
+def read_lm75(channel: TCA9548A_Channel) -> float | None:
+    """Reads LM75 Temperature Sensor"""
+    if not channel.try_lock():
+        return None
+    buffer = bytearray(2)  # Buffer to hold the 2 bytes read from the register
+    channel.readfrom_into(0x48, buffer)
 
-	def getRegisterVal(self):
-		"""
-		Reads the temp from the LM75 sensor.
-		Returns the raw register value.
-		"""
-		try:
-			#Read from the temperature register on the chip
-			raw = self._bus.read_word_data(self.i2c_address, LM75_TEMP_REGISTER) & 0xFFFF
-			#Swap LSB and MSB
-			reordered_raw = ((raw << 8) & 0xFF00) + (raw >> 8)
-			#Check to see if we have a positive or negative temperature
-			# Bit 16 is the positive or negative flag.
-			# Shift it over into bit 1 so we can use it as a boolean
-			temperature_is_negative = (reordered_raw >> 15)
-			#Only the 11 most significant bits contain temperature data
-			# For positive temperatures we just shift over 5 bits
-			# For negative temperatures we shift over 5 bits and take two complement
-			if temperature_is_negative:
-				register_value = (((reordered_raw >> 5) & 0xFFFF) - 1) - 0b0000011111111111
-			else:
-				register_value = reordered_raw >> 5
-		except:
-			print("Error while trying to read i2c bus at chip address", hex(self.i2c_address), "\n")
-			raise
-		return register_value
-
-	def getCelsius(self):
-		"""
-		Converts raw register value into celsius temperature reading.
-		Returns celsius degrees to three decimal places.
-		"""
-		c_val = self.getRegisterVal() * 0.125
-		return round(c_val, 3)
-
-	def getFahrenheit(self):
-		"""
-		Converts celsius temperature reading into fahrenheit.
-		Returns fahrenheit degrees to thre decimal places.
-		"""
-		f_val = (self.getCelsius() * (9.0/5.0)) + 32.0
-		return round(f_val, 3)
+    # pack the bytes into a word manually
+    raw_temp = (buffer[0] << 8) + buffer[1] & 0xFFFF
+    temperature = (raw_temp / 32.0) / 8.0
+    channel.unlock()
+    return temperature

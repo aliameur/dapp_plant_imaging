@@ -7,7 +7,7 @@ import board
 import neopixel
 from adafruit_tca9548a import TCA9548A
 from adafruit_bh1750 import BH1750
-from lm75 import LM75
+from lm75 import read_lm75
 
 MUX_ADDRESS = 0x70
 LIGHT_SENSOR_ADDRESS = 0x23
@@ -23,33 +23,29 @@ BRIGHTNESS_Ki = 0.1
 BRIGHTNESS_Kd = 0.05
 
 
+# time per loop of 10 secs?
 # TODO convert from lux to brightness, need to test sensors
-# TODO convert from temp in C to heater output, need to test
 # TODO check if control loop works correctly
-# TODO check if we can physically use pwm with relays, or will we need solid state relays
 # TODO check type casting on setting methods
-# TODO check new_plant method after all, and redo message handler to reflect current updates
+# TODO redo message handler to reflect current updates
 
 
 class Controller:
 
-    def __init__(self):
+    def __init__(self, led_board_pin: int = 18, n_leds: int = 48):
         self.plants = {}
         self.threads = {}
         self.calibration = None  # TODO add calibration
-        self.default_ideal = {
-            "temperature": 25,
-            "wavelength": 700,
-            "brightness": 80
-        }
-        self.led_strip = neopixel.NeoPixel(board.D6, 8, auto_write=False)
+        led_pin = getattr(board, 'D' + str(led_board_pin))
+        self.led_strip = neopixel.NeoPixel(led_pin, n_leds, auto_write=False)
 
-    def init_plants(self, plant_dict: str) -> str:
+    def init_plants(self, plants_dict: str) -> str:
         try:
-            plant_dict = self._string_to_dict(plant_dict)
-            self.plants = plant_dict
+            plants_dict = self._string_to_dict(plants_dict)
+            self.plants = plants_dict
             for plant_id, plant in plants.items():
                 self.init_plant(plant, plant_id)
+            return "Successfully initialized all plants."
         except Exception as e:
             return e.__str__()
 
@@ -60,8 +56,7 @@ class Controller:
                                       setpoint=plant["ideal"]["brightness"])
         plant["running"] = True
 
-        pin = plant["settings"]["heating_element_pin"]
-        plant["pwm"] = gpiozero.PWMOutputDevice(pin, frequency=FREQ, initial_value=0)
+        self.set_wavelength(plant_id, plant["ideal"]["wavelength"], rewrite=False)
 
         t = threading.Thread(target=self._control_loop, args=(1, plant_id))
         t.start()
@@ -75,8 +70,14 @@ class Controller:
             data = self.extract_current_single(self.plants[plant_id], plant_id)
             return str(data)
 
-    def set_wavelength(self, plant_id: str, wavelength: int):
-        self.plants[plant_id]["ideal"]["wavelength"] = wavelength
+    def set_wavelength(self, plant_id: str, wavelength: int, rewrite=True):
+        if rewrite:
+            self.plants[plant_id]["ideal"]["wavelength"] = wavelength
+        brightness = self.plants[plant_id]["ideal"]["brightness"]
+        led_start = self.plants[plant_id]["settings"]["led_start_number"]
+
+        rgb = self.wavelength_to_rgb(wavelength)
+        self.led_strip[led_start: led_start + 6] = 6 * self.adjust_brightness(rgb, brightness)
 
     def set_brightness(self, plant_id: str, brightness: int):
         self.plants[plant_id]["ideal"]["brightness"] = brightness
@@ -88,17 +89,10 @@ class Controller:
 
     def new_plant(self, plant_id: str, data: str) -> str:
         try:
-            data = self._string_to_dict(data)
-            self.plants[plant_id] = {
-                "settings": data,
-                "ideal": self.default_ideal,
-                "current": {},
-                "pid": PID(1, 0.1, 0.05, setpoint=self.default_ideal["temperature"]),
-                "running": True
-            }
-            t = threading.Thread(target=self._plant_loop, args=(plant_id,))
-            t.start()
-            self.threads[plant_id] = t
+            plant_dict = self._string_to_dict(data)
+            self.plants[plant_id] = plant_dict
+            self.init_plant(self.plants[plant_id], plant_id)
+            return f"Successfully added plant {plant_id}"
         except Exception as e:
             return e.__str__()
 
@@ -108,21 +102,26 @@ class Controller:
             self.threads[plant_id].join()
             del self.plants[plant_id]
             del self.threads[plant_id]
+            return f"Successfully deleted plant {plant_id}."
         except Exception as e:
             return e.__str__()
 
     def read_temperature(self, plant_id: str) -> float:
-        sensor = LM75(MUX[self.plants[plant_id]["multiplexer_channel"]])
-        return sensor.getCelsius()
+        mux_channel = self.plants[plant_id]["multiplexer_channel"]
+        return read_lm75(mux_channel)
 
     def read_brightness(self, plant_id: str) -> float:
-        sensor = BH1750(MUX[self.plants[plant_id]["multiplexer_channel"]])
+        mux_channel = self.plants[plant_id]["multiplexer_channel"]
+        sensor = BH1750(MUX[mux_channel])
         return sensor.lux
 
-    def control_heating(self, plant_id: str, duty_cycle: float):
-        pwm = self.plants[plant_id]["settings"]["pwm"]
-        # assume converted temperature to appropriate pwm value
-        pwm.value = duty_cycle
+    def control_heating(self, plant_id: str, control_value: float):
+        heater_pin = self.plants[plant_id]['settings']['heating_element_pin']
+        heater = gpiozero.OutputDevice(heater_pin, active_high=False)
+        if control_value > 0:
+            heater.on()
+        else:
+            heater.off()
 
     def control_led(self, plant_id: str, brightness: float):
 
@@ -234,7 +233,27 @@ plants = {
         },
         "temperature_pid": PID(1, 0.1, 0.05, setpoint=15),
         "brightness_pid": PID(1, 0.1, 0.05, setpoint=15),
-        "pwm": gpiozero.PWMOutputDevice,
         "running": True
     }
 }
+
+controller = Controller()
+
+data = str({
+    "adskf38aodf": {
+        "settings": {
+            "heating_element_pin": 23,
+            "multiplexer_channel": 0,
+            "led_start_number": 0,
+        },
+        "ideal": {
+            "temperature": 26.2,
+            "brightness": 80,
+            "wavelength": 640,
+        }
+    }
+})
+
+controller.init_plants(data)
+
+print(controller.plants)

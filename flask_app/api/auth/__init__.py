@@ -5,6 +5,7 @@ from firebase_admin import auth
 def create_module(app, **kwargs):
     @app.before_request
     def before_request():
+        print("request")
         if current_app.config.get("AUTH_ENABLED") and request.method != 'OPTIONS':
             auth_header = request.headers.get('Authorization', None)
 
