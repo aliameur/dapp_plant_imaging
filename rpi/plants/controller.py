@@ -67,6 +67,8 @@ class Controller:
             data = self.extract_current(self.plants)
             return str(data)
         else:
+            if plant_id not in self.plants:
+                return "plant does not exist"
             data = self.extract_current_single(self.plants[plant_id], plant_id)
             return str(data)
 
@@ -79,21 +81,28 @@ class Controller:
         rgb = self.wavelength_to_rgb(wavelength)
         self.led_strip[led_start: led_start + 6] = 6 * self.adjust_brightness(rgb, brightness)
         self.led_strip.show()
+        return f"Successfully set wavelength for plant {plant_id}."
 
     def set_brightness(self, plant_id: str, brightness: int):
         self.plants[plant_id]["ideal"]["brightness"] = brightness
+
+        wavelength = self.plants[plant_id]["ideal"]["wavelength"]
+        self.set_wavelength(plant_id, wavelength)
+
         self.plants[plant_id]["brightness_pid"].setpoint = brightness
+        return f"Successfully set brightness for plant {plant_id}."
 
     def set_temperature(self, plant_id: str, temp: float):
         self.plants[plant_id]["ideal"]["temperature"] = temp
         self.plants[plant_id]["temperature_pid"].setpoint = temp
+        return f"Successfully set temperature for plant {plant_id}."
 
     def new_plant(self, plant_id: str, data: str) -> str:
         try:
             plant_dict = self._string_to_dict(data)
             self.plants[plant_id] = plant_dict
             self.init_plant(self.plants[plant_id], plant_id)
-            return f"Successfully added plant {plant_id}"
+            return f"Successfully added plant {plant_id}."
         except Exception as e:
             return e.__str__()
 
@@ -195,7 +204,7 @@ class Controller:
 
     @staticmethod
     def adjust_brightness(rgb, brightness):
-        return tuple(round(brightness * component) for component in rgb)
+        return tuple(round((brightness / 100) * component) for component in rgb)
 
     @staticmethod
     def _string_to_dict(string: str) -> dict:

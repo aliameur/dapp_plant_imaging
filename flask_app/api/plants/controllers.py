@@ -4,6 +4,7 @@ from pika.exceptions import ConnectionBlockedTimeout
 from flask_restful import Resource
 
 plants_bp = Blueprint('plants', __name__, url_prefix='/plants')
+# ignore all endpoints in ConditionResource apart from get
 
 
 class ConditionResource(Resource):

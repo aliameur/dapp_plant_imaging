@@ -1,8 +1,9 @@
-from flask import request, Blueprint
+from flask import request, Blueprint, current_app
 from flask_restful import Resource
 from ..models import Plant, create_plant, History, Images
 from datetime import datetime
 from fireo.utils import utils
+from fireo.models import Model
 from .. import rabbitmq
 
 data_bp = Blueprint('data', __name__, url_prefix='/data')
@@ -35,7 +36,7 @@ class PlantResource(Resource):
             )
             plant.save()
 
-            value = plant.to_dict()
+            value = prepare_data(plant)
             message = f"new,{plant.id},{value}"
             try:
                 response = rabbitmq.call("plant", message).decode()
@@ -70,25 +71,25 @@ class PlantResource(Resource):
                 return {"error": "Plant not found."}, 404
 
             data = request.get_json()
-            # Check if at least one correct field is present
-            expected_fields = {'name', 'temperature_sensor_pin', 'heating_element_pin', 'led_pin'}
-            if not any(field in data for field in expected_fields):
-                return {"error": "No valid fields provided for update"}, 400
+            fields = ['name', 'heating_element_pin', 'multiplexer_channel', 'led_start_number', 'ideal_temperature',
+                      'ideal_wavelength', 'ideal_brightness']
 
-            # Only update fields that were included in the request
-            if 'name' in data:
-                plant.name = data['name']
-            if 'temperature_sensor_pin' in data:
-                plant.temperature_sensor_pin = data['temperature_sensor_pin']
-            if 'heating_element_pin' in data:
-                plant.heating_element_pin = data['heating_element_pin']
-            if 'led_pin' in data:
-                plant.led_pin = data['led_pin']
+            try:
+                valid_data = validate_patch(data, fields, [
+                    current_app.config.get("TEMPERATURE_BOUNDS"),
+                    current_app.config.get("WAVELENGTH_BOUNDS"),
+                    current_app.config.get("BRIGHTNESS_BOUNDS")
+                ])
+            except Exception as e:
+                return e.__str__(), 400
+
+            for field, value in valid_data.items():
+                setattr(plant, field, value)
 
             plant.update()
 
-            value = plant.to_dict()
-            message = f"new,{plant.id},{value}"
+            value = prepare_data(plant)
+            message = f"update,{plant.id},{value}"
             try:
                 response = rabbitmq.call("plant", message).decode()
                 print(response)  # TODO add error handling on return
@@ -129,16 +130,6 @@ class PlantResource(Resource):
             return {"message": f"Updated plant {plant_id}."}
         except ValueError as e:
             return {"error": e.__str__()}, 400
-
-
-def plant_dict_formatter(plant_dict: dict) -> dict:
-    # Create a new dictionary with only pin information
-    result = {
-        'temperature_sensor_pin': plant_dict['temperature_sensor_pin'],
-        'heating_element_pin': plant_dict['heating_element_pin'],
-        'led_pin': plant_dict['led_pin']
-    }
-    return result
 
 
 class HistoryResource(Resource):
@@ -212,3 +203,37 @@ class ImagesResource(Resource):
             if images:
                 return [i.to_dict() for i in images]
             return []
+
+
+def validate_patch(data: dict, fields: list, bounds: list[tuple]):
+    filtered_data = {field: data[field] for field in fields if field in data}
+
+    fields_to_check_bounds = ['ideal_temperature', 'ideal_wavelength', 'ideal_brightness']
+    out_of_bounds = check_bounds(fields_to_check_bounds, bounds, filtered_data)
+    if out_of_bounds:
+        raise ValueError(f"Fields out of bounds: {', '.join(out_of_bounds)}")
+
+    return filtered_data
+
+
+def check_bounds(fields_list: list, bounds_list: list[tuple], data: dict):
+    return [field for field, bounds in zip(fields_list, bounds_list)
+            if field in data and not bounds[0] <= data[field] <= bounds[1]]
+
+
+def prepare_data(plant: Plant | Model):
+    data = {
+        plant.id: {
+            "settings": {
+                "heating_element_pin": plant.heating_element_pin,
+                "multiplexer_channel": plant.multiplexer_channel,
+                "led_start_number": plant.led_start_number,
+            },
+            "ideal": {
+                "temperature": plant.ideal_temperature,
+                "brightness": plant.ideal_brightness,
+                "wavelength": plant.ideal_wavelength,
+            }
+        }
+    }
+    return str(data)
