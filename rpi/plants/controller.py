@@ -13,7 +13,6 @@ MUX_ADDRESS = 0x70
 LIGHT_SENSOR_ADDRESS = 0x23
 TEMP_SENSOR_ADDRESS = 0x48
 MUX = TCA9548A(board.I2C())
-FREQ = 100
 
 TEMP_Kp = 1
 TEMP_Ki = 0.1
@@ -54,6 +53,7 @@ class Controller:
                                        setpoint=plant["ideal"]["temperature"])
         plant["brightness_pid"] = PID(BRIGHTNESS_Kp, BRIGHTNESS_Ki, BRIGHTNESS_Kd,
                                       setpoint=plant["ideal"]["brightness"])
+        plant["heater"] = gpiozero.OutputDevice(plant["settings"]["heating_element_pin"], active_high=False)
         plant["running"] = True
 
         self.set_wavelength(plant_id, plant["ideal"]["wavelength"], rewrite=False)
@@ -78,6 +78,7 @@ class Controller:
 
         rgb = self.wavelength_to_rgb(wavelength)
         self.led_strip[led_start: led_start + 6] = 6 * self.adjust_brightness(rgb, brightness)
+        self.led_strip.show()
 
     def set_brightness(self, plant_id: str, brightness: int):
         self.plants[plant_id]["ideal"]["brightness"] = brightness
@@ -116,8 +117,7 @@ class Controller:
         return sensor.lux
 
     def control_heating(self, plant_id: str, control_value: float):
-        heater_pin = self.plants[plant_id]['settings']['heating_element_pin']
-        heater = gpiozero.OutputDevice(heater_pin, active_high=False)
+        heater = self.plants[plant_id]['heater']
         if control_value > 0:
             heater.on()
         else:
@@ -236,24 +236,3 @@ plants = {
         "running": True
     }
 }
-
-controller = Controller()
-
-data = str({
-    "adskf38aodf": {
-        "settings": {
-            "heating_element_pin": 23,
-            "multiplexer_channel": 0,
-            "led_start_number": 0,
-        },
-        "ideal": {
-            "temperature": 26.2,
-            "brightness": 80,
-            "wavelength": 640,
-        }
-    }
-})
-
-controller.init_plants(data)
-
-print(controller.plants)
