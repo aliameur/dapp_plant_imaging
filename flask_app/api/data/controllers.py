@@ -104,23 +104,28 @@ class PlantResource(Resource):
         try:
             plant = Plant.collection.get(plant_id)
             if not plant:
-                return {"error": "Plant not found"}, 404
+                return {"error": "Plant not found."}, 404
+
             data = request.get_json()
+            fields = ['name', 'heating_element_pin', 'multiplexer_channel', 'led_start_number', 'ideal_temperature',
+                      'ideal_wavelength', 'ideal_brightness']
 
-            # Check if all necessary fields are present
-            required_fields = {'name', 'temperature_sensor_pin', 'heating_element_pin', 'led_pin'}
-            if not all(field in data for field in required_fields):
-                return {"error": "All required fields not provided for update"}, 400
+            try:
+                valid_data = validate_put(data, fields, [
+                    current_app.config.get("TEMPERATURE_BOUNDS"),
+                    current_app.config.get("WAVELENGTH_BOUNDS"),
+                    current_app.config.get("BRIGHTNESS_BOUNDS")
+                ])
+            except Exception as e:
+                return e.__str__(), 400
 
-            # Update fields
-            plant.name = data['name']
-            plant.temperature_sensor_pin = data['temperature_sensor_pin']
-            plant.heating_element_pin = data['heating_element_pin']
-            plant.led_pin = data['led_pin']
+            for field, value in valid_data.items():
+                setattr(plant, field, value)
+
             plant.update()
 
-            value = plant.to_dict()
-            message = f"new,{plant.id},{value}"
+            value = prepare_data(plant)
+            message = f"update,{plant.id},{value}"
             try:
                 response = rabbitmq.call("plant", message).decode()
                 print(response)  # TODO add error handling on return
@@ -128,6 +133,7 @@ class PlantResource(Resource):
                 return {"message": f"Updated plant {plant_id}, will update Raspberry Pi on launch."}
 
             return {"message": f"Updated plant {plant_id}."}
+
         except ValueError as e:
             return {"error": e.__str__()}, 400
 
@@ -206,6 +212,21 @@ class ImagesResource(Resource):
 
 
 def validate_patch(data: dict, fields: list, bounds: list[tuple]):
+    filtered_data = {field: data[field] for field in fields if field in data}
+
+    fields_to_check_bounds = ['ideal_temperature', 'ideal_wavelength', 'ideal_brightness']
+    out_of_bounds = check_bounds(fields_to_check_bounds, bounds, filtered_data)
+    if out_of_bounds:
+        raise ValueError(f"Fields out of bounds: {', '.join(out_of_bounds)}")
+
+    return filtered_data
+
+
+def validate_put(data: dict, fields: list, bounds: list[tuple]):
+    missing_fields = [field for field in fields if field not in data]
+    if missing_fields:
+        raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")
+
     filtered_data = {field: data[field] for field in fields if field in data}
 
     fields_to_check_bounds = ['ideal_temperature', 'ideal_wavelength', 'ideal_brightness']
