@@ -2,8 +2,12 @@ from flask import Blueprint, request, current_app
 from .. import rabbitmq
 from pika.exceptions import ConnectionBlockedTimeout
 from flask_restful import Resource
+from ..models import Plant
+from fireo.models import Model
 
 plants_bp = Blueprint('plants', __name__, url_prefix='/plants')
+
+
 # ignore all endpoints in ConditionResource apart from get
 
 
@@ -110,15 +114,32 @@ def send_messages(data, plant_id):
 
 @plants_bp.route('/init')
 def init():
-    data = request.get_json()
+    plants = Plant.collection.fetch()
+    data = prepare_all_data(plants)
     message = f"init,,{data}"
+    print(data)
     try:
-        plant_conditions = rabbitmq.call("plant", message).decode()
-        if plant_conditions != "plant does not exist":
-            return plant_conditions
-        else:
-            return {"error": "Plant requested does not exist."}, 404
+        response = rabbitmq.call("plant", message).decode()
+        print(response)
     except ConnectionBlockedTimeout:
         return {"error": "Timeout occurred"}, 500
     except Exception as e:
         return {"error": e}, 500
+
+
+def prepare_all_data(plants):
+    combined_data = {}
+    for plant in plants:
+        combined_data[plant.id] = {
+            "settings": {
+                "heating_element_pin": plant.heating_element_pin,
+                "multiplexer_channel": plant.multiplexer_channel,
+                "led_start_number": plant.led_start_number,
+            },
+            "ideal": {
+                "temperature": plant.ideal_temperature,
+                "brightness": plant.ideal_brightness,
+                "wavelength": plant.ideal_wavelength,
+            }
+        }
+    return str(combined_data)
