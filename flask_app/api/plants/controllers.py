@@ -106,3 +106,19 @@ def send_messages(data, plant_id):
         if response == "plant does not exist":
             return {"error": "Plant requested does not exist"}, 404
     return "", 200
+
+
+@plants_bp.route('/init')
+def init():
+    data = request.get_json()
+    message = f"init,,{data}"
+    try:
+        plant_conditions = rabbitmq.call("plant", message).decode()
+        if plant_conditions != "plant does not exist":
+            return plant_conditions
+        else:
+            return {"error": "Plant requested does not exist."}, 404
+    except ConnectionBlockedTimeout:
+        return {"error": "Timeout occurred"}, 500
+    except Exception as e:
+        return {"error": e}, 500

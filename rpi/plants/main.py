@@ -32,8 +32,8 @@ def handle_message(message: str):
 
 def on_request(ch, method, props, body: bytes):
     message = body.decode()
-    response = handle_message(message)
-    # response = message + " response"
+    # response = handle_message(message)
+    response = message + " response"
     print(f" [.] Received {message}")
     ch.basic_publish(exchange='',
                      routing_key=props.reply_to,

@@ -10,8 +10,6 @@ services:
     environment:
       - WEBAPP_ENV=dev
       - GOOGLE_APPLICATION_CREDENTIALS=firebase-config.json
-    volumes:
-      - ./flask_app:/flask_app
   rmq:
     build: rabbitmq/
     ports:
