@@ -2,6 +2,8 @@ from flask import Flask
 from flask_cors import CORS
 from .rabbitmq import RabbitMQ
 from firebase_admin import initialize_app
+from .models import Plant
+from pika.exceptions import ConnectionBlockedTimeout
 
 rabbitmq = RabbitMQ()
 cors = CORS()
@@ -33,5 +35,36 @@ def create_app(object_name):
     imaging_create_module(app)
     data_create_module(app)
     auth_create_module(app)
+
+    @app.route('/init')
+    def init():
+        plants = Plant.collection.fetch()
+        data = prepare_all_data(plants)
+        message = f"init,,{data}"
+        print(data)
+        try:
+            response = rabbitmq.call("plant", message).decode()
+            print(response)
+        except ConnectionBlockedTimeout:
+            return {"error": "Timeout occurred"}, 500
+        except Exception as e:
+            return {"error": e}, 500
+
+    def prepare_all_data(plants):
+        combined_data = {}
+        for plant in plants:
+            combined_data[plant.id] = {
+                "settings": {
+                    "heating_element_pin": plant.heating_element_pin,
+                    "multiplexer_channel": plant.multiplexer_channel,
+                    "led_start_number": plant.led_start_number,
+                },
+                "ideal": {
+                    "temperature": plant.ideal_temperature,
+                    "brightness": plant.ideal_brightness,
+                    "wavelength": plant.ideal_wavelength,
+                }
+            }
+        return str(combined_data)
 
     return app
